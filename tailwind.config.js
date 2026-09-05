@@ -14,9 +14,9 @@ export default {
           200: '#FDE7A6',
           300: '#FBD174',
           400: '#F8B43C',
-          500: '#F59E0B',
-          600: '#D97706',
-          700: '#B45309',
+          500: '#B65F12',
+          600: '#974D0C',
+          700: '#85400B',
           800: '#92400E',
           900: '#78350F',
         },
@@ -25,7 +25,7 @@ export default {
         // DEFAULT를 함께 두어 기존 flat 참조(text-success/border-danger 등)는 그대로 동작(하위호환),
         // 신규로 50/100/600/700 단계를 열어 raw green/red/yellow 팔레트를 토큰으로 흡수한다.
         'success': { DEFAULT: '#10B981', 50: '#ECFDF5', 100: '#D1FAE5', 600: '#059669', 700: '#047857' },
-        'warning': { DEFAULT: '#F59E0B', 50: '#FFFBEB', 100: '#FEF3C7', 600: '#D97706', 700: '#B45309' },
+        'warning': { DEFAULT: '#F59E0B', 50: '#FFFBEB', 100: '#FEF3C7', 600: '#974D0C', 700: '#85400B' },
         'danger':  { DEFAULT: '#F43F5E', 50: '#FFF1F2', 100: '#FFE4E6', 600: '#E11D48', 700: '#BE123C' },
         // info: 변환/결과 강조용 블루 스케일(변환표 등). flat 사용처는 DEFAULT로 하위호환.
         'info': {

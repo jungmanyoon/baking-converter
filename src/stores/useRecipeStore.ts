@@ -9,6 +9,9 @@ import { Recipe } from '@/types/recipe.types'
 import { RecipeStore, RecipeFilters, RecipeSortOption } from '@/types/store.types'
 import sampleRecipes from '@data/sampleRecipes.js'
 
+// 저장 실패를 화면에 전달한다. 이 상태 자체는 저장소에 쓰지 않는다.
+export const useRecipeStorageStatus = create<{ failed: boolean }>(() => ({ failed: false }))
+
 /**
  * QuotaExceededError 방어용 localStorage 래퍼.
  * 레시피가 많아지면 persist 직렬화가 브라우저 저장 한도를 넘어
@@ -26,7 +29,9 @@ const quotaSafeStorage = createJSONStorage(() => ({
   setItem: (name: string, value: string): void => {
     try {
       localStorage.setItem(name, value)
+      useRecipeStorageStatus.setState({ failed: false })
     } catch (e) {
+      useRecipeStorageStatus.setState({ failed: true })
       console.warn(
         '[recipe-store] 로컬 저장 실패(용량 초과 가능). 이번 변경은 영구 저장되지 않습니다:',
         e

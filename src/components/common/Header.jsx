@@ -30,7 +30,7 @@ function Header() {
 
   return (
     // 뉴트럴 화이트 헤더 + 스크롤 시 고정. 넓은 주황 풀블리드를 걷어내 "화이트 앱 + 주황 포인트"로.
-    <header className="sticky top-0 z-40 bg-surface-paper/90 backdrop-blur border-b border-line text-ink-muted">
+    <header className="app-header sticky top-0 z-40 bg-surface-paper/90 backdrop-blur border-b border-line text-ink-muted">
       {/* 모바일 패딩 축소(px-2 py-2), sm 이상 기존 패딩(py-3) 보존 */}
       <div className="container mx-auto px-2 py-2 sm:py-3">
         {/* 좁은 화면에서 로고와 nav가 겹치지 않도록 gap 부여 */}
@@ -42,7 +42,7 @@ function Header() {
           >
             <Wheat className="w-5 h-5 text-brand-600 shrink-0" />
             {/* 앱 이름: 긴 캐논명이 nav를 밀지 않도록 truncate (모바일 text-base, sm 이상 text-lg) */}
-            <h1 className="text-base sm:text-lg font-bold text-ink truncate">{t('app.name')}</h1>
+            <span className="text-base sm:text-lg font-bold text-ink truncate">{t('app.name')}</span>
           </button>
 
           {/* Navigation
@@ -54,11 +54,11 @@ function Header() {
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {/* 주요 nav: 모바일은 하단 BottomNav로 이동 -> sm 이상에서만 표시 */}
-            <div className="hidden sm:flex items-center gap-0.5 sm:gap-1">
+            <div className="hidden md:flex items-center gap-0.5 sm:gap-1">
             {navTabs.map(tab => {
               const Icon = tab.icon
               // #workspace(레거시 별칭)도 변환기 탭을 활성으로 표시
-              const active = activeTab === tab.id || (tab.id === 'dashboard' && activeTab === 'workspace')
+              const active = activeTab === tab.id || (tab.id === 'recipes' && ['view', 'editor'].includes(activeTab)) || (tab.id === 'dashboard' && activeTab === 'workspace')
               return (
                 <button
                   key={tab.id}

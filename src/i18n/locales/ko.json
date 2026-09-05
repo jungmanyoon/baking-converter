@@ -1,4 +1,17 @@
 {
+  "workspace": {
+  "deleteConfirm": "“{{name}}” 레시피를 삭제할까요?",
+  "eyebrow": "나의 베이킹 작업실",
+  "navigation": "변환 작업 순서",
+  "ingredients": "재료 입력",
+  "settings": "변환 설정",
+  "result": "계량 결과",
+  "process": "공정·메모",
+  "moreActions": "복사 · 내보내기 · 도구",
+  "skipContent": "본문으로 건너뛰기",
+  "settingsCategory": "설정 항목",
+  "saveFailed": "브라우저에 저장하지 못했습니다. 창을 닫기 전에 레시피를 내보내 백업해 주세요."
+},
   "app": {
     "name": "제과제빵 레시피 변환기",
     "tagline": "베이커스 퍼센트 기반 레시피 변환"

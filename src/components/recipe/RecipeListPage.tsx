@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RecipeList from './RecipeList'
 import SearchBar from '@components/common/SearchBar'
@@ -23,8 +23,7 @@ const RecipeListPage: React.FC = () => {
     setFilters,
     setSortBy,
     clearFilters,
-    getAvailableTags,
-    resetToSampleRecipes
+    getAvailableTags
   } = useRecipeStore()
   const filteredRecipes = useRecipeStore(selectFilteredRecipes)
   const availableTags = useRecipeStore(getAvailableTags)
@@ -32,34 +31,6 @@ const RecipeListPage: React.FC = () => {
 
   // 광고 모달 상태
   const [showAdModal, setShowAdModal] = useState(false)
-
-  // 초기화 1회 실행 가드 (의존성 변경으로 effect 가 재실행돼도 초기화 로직은 최초 1회만)
-  const didInitRef = useRef(false)
-
-  // 초기 진입 시 빈 경우 또는 출처 정보 없는 경우 샘플 레시피 주입
-  useEffect(() => {
-    if (didInitRef.current) return
-    didInitRef.current = true
-
-    // 레시피가 없으면 샘플 로드
-    if (!recipes || recipes.length === 0) {
-      resetToSampleRecipes()
-      toast.success(t('message.sampleRecipesLoaded'))
-      return
-    }
-
-    // 기존 레시피에 출처(source) 정보가 없으면 샘플로 교체
-    // (이전 버전 데이터 마이그레이션)
-    const hasRecipesWithoutSource = recipes.some(r => !r.source)
-    if (hasRecipesWithoutSource && recipes.length > 0) {
-      // 모든 레시피에 출처가 없으면 샘플로 교체
-      const allWithoutSource = recipes.every(r => !r.source)
-      if (allWithoutSource) {
-        resetToSampleRecipes()
-        toast.success(t('message.sampleRecipesUpdated'))
-      }
-    }
-  }, [recipes, resetToSampleRecipes, t])
 
   const handleSelect = useCallback((recipe: any) => {
     setCurrentRecipe(recipe)
@@ -133,11 +104,11 @@ const RecipeListPage: React.FC = () => {
   }, [clearFilters])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="recipe-library flex flex-col h-full gap-5">
       {/* Search and Filter Controls */}
       {/* relative z-20: 필터 드롭다운(absolute)이 아래 목록 위로 겹쳐 뜨도록 스택 컨텍스트 확보.
           (이전 overflow-x-hidden 은 CSS 상 overflow-y:auto 를 강제해 드롭다운을 잘라내던 버그 -> 제거) */}
-      <div className="relative z-20 flex-none p-3 sm:p-4 bg-surface-muted border-b border-line">
+      <div className="relative z-20 flex-none p-3 sm:p-4 bg-surface-paper border border-line rounded-xl">
         {/* 검색 + 필터 토글 + 정렬을 한 줄 툴바로 (세로 공간 절약). 상세 필터는 펼칠 때만 아래 표시. */}
         <FilterControls
           filters={filters}

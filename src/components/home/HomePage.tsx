@@ -84,9 +84,9 @@ export default function HomePage() {
   }
 
   return (
-    <div className="bg-surface-canvas flex flex-col h-full">
+    <div className="home-page bg-surface-canvas flex flex-col h-full">
       {/* 히어로 섹션 - 화이트 베이스 + amber 액센트 (주황 그라디언트 워시 제거) */}
-      <div className="border-b border-line">
+      <div className="home-intro border-b border-line">
         {/* 모바일은 패딩 축소(px-3 py-4), sm 이상에서 데스크톱 패딩(px-4 py-5) 보존 */}
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-5">
           <div className="flex items-center gap-3 mb-3">
@@ -110,7 +110,7 @@ export default function HomePage() {
           </button>
 
           {/* 통계 카드 - canvas 위 화이트 카드 + 뉴트럴 아이콘, 대표 수치만 brand 강조 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="home-stats grid grid-cols-4 gap-2">
             <div className="bg-surface-paper border border-line rounded-xl px-3 py-2">
               <div className="flex items-center gap-1.5 text-ink-subtle text-xs">
                 <BookOpen className="w-3.5 h-3.5 text-ink-subtle" />
@@ -148,15 +148,15 @@ export default function HomePage() {
       </div>
 
       {/* 본문: 모바일 px-3, sm 이상 기존 px-4 보존 */}
-      <div className="container mx-auto px-3 py-4 sm:px-4 flex-1">
+      <div className="container mx-auto px-4 py-6 sm:px-6 flex-1">
         {/* 빠른 시작 - 컴팩트 가로 버튼 */}
-        <section className="mb-4">
+        <section className="mb-7">
           <h2 className="text-base font-bold text-ink mb-2 flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-ink-subtle" />
             {t('home.quickStart')}
           </h2>
           {/* 빠른 시작: 모바일 2열, sm 이상 기존 4열 보존 */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="home-shortcuts grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               onClick={handleNewRecipe}
               className="flex flex-col items-center justify-center gap-1.5 min-h-[44px] py-3 px-2 bg-surface-paper rounded-lg shadow-card border border-brand-200 hover:border-brand-400 hover:shadow-cardHover transition-all group"
@@ -217,7 +217,7 @@ export default function HomePage() {
 
             {/* 최근 레시피: 모바일 1열, sm 2열, lg 이상 기존 3열 보존.
                 H3: 카드 마크업을 RecipeCard(compact) 단일 소스로 통합. 홈은 읽기전용(hideActions). */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentRecipes.map(recipe => (
                 <RecipeCard
                   key={recipe.id}

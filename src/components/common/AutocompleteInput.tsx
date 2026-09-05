@@ -114,6 +114,7 @@ export default function AutocompleteInput({
 
   // 키보드 네비게이션
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return
     if (!isOpen) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         setIsOpen(true)
@@ -219,6 +220,7 @@ export default function AutocompleteInput({
         ref={inputRef}
         type="text"
         role="combobox"
+        aria-label={resolvedPlaceholder}
         aria-expanded={isOpen && filteredSuggestions.length > 0}
         aria-controls={listboxId}
         aria-autocomplete="list"

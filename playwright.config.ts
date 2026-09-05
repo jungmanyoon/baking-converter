@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Windows WebKit 녹화기는 한글 경로에서 파일을 열지 못하므로 해당 환경만 녹화를 끈다.
+const webkitVideo = process.platform === 'win32' && /[^\x00-\x7F]/.test(process.cwd())
+  ? 'off' as const : 'retain-on-failure' as const
+
 /**
  * Playwright E2E 테스트 설정
  * @see https://playwright.dev/docs/test-configuration
@@ -45,7 +49,7 @@ export default defineConfig({
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: { ...devices['Desktop Safari'], video: webkitVideo },
     },
 
     /* Mobile devices */
@@ -55,7 +59,7 @@ export default defineConfig({
     },
     {
       name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
+      use: { ...devices['iPhone 12'], video: webkitVideo },
     },
   ],
 

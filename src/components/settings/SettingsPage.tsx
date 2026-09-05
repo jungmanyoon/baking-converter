@@ -238,9 +238,21 @@ export default function SettingsPage({
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* 모바일: 상단 가로 스크롤 탭바 / 데스크톱(lg:): 좌측 세로 사이드바 보존 */}
           <div className="w-full lg:w-56 lg:flex-shrink-0">
+            <label className="block lg:hidden text-sm font-semibold text-ink">
+              {t('workspace.settingsCategory')}
+              <select className="input w-full mt-2" value={activeTab} onChange={e => setActiveTab(e.target.value)}>
+                {SETTINGS_GROUPS.map(group => (
+                  <optgroup key={group.id} label={t(group.labelKey)}>
+                    {TABS.filter(tab => tab.group === group.id).map(tab => (
+                      <option key={tab.id} value={tab.id}>{t(tab.nameKey)}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
             {/* H6: 그룹(일반/계산 설정/시스템)별로 묶어 렌더. 모바일 가로 스크롤엔 edge-fade(mask)로
                 더 스크롤 가능함을 암시. 데스크톱은 mask 해제 + 그룹 소제목 노출. */}
-            <nav className="flex flex-row lg:flex-col gap-1 lg:gap-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 lg:sticky lg:top-24 [mask-image:linear-gradient(to_right,transparent,black_1.5rem,black_calc(100%-1.5rem),transparent)] lg:[mask-image:none]">
+            <nav className="hidden lg:flex flex-row lg:flex-col gap-1 lg:gap-0 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 lg:sticky lg:top-24 [mask-image:linear-gradient(to_right,transparent,black_1.5rem,black_calc(100%-1.5rem),transparent)] lg:[mask-image:none]">
               {SETTINGS_GROUPS.map(group => (
                 <Fragment key={group.id}>
                   {/* 그룹 소제목: 데스크톱 세로 사이드바에서만 (모바일 가로 탭엔 폭 낭비 방지) */}

@@ -1,4 +1,17 @@
 {
+  "workspace": {
+  "deleteConfirm": "Delete “{{name}}”?",
+  "eyebrow": "My baking workspace",
+  "navigation": "Conversion workflow",
+  "ingredients": "Ingredients",
+  "settings": "Convert",
+  "result": "Weigh",
+  "process": "Steps",
+  "moreActions": "Copy · Export · Tools",
+  "skipContent": "Skip to content",
+  "settingsCategory": "Settings category",
+  "saveFailed": "Could not save in this browser. Export your recipes before closing this window."
+},
   "app": {
     "name": "Baking Recipe Converter",
     "tagline": "Baker's Percentage Based Recipe Converter"

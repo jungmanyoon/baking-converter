@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 // VitePWA injectManifest 기반 서비스 워커
-import { precacheAndRoute } from 'workbox-precaching'
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
@@ -19,12 +20,14 @@ const API_CACHE = 'api-v2.0'
 const STATIC_FILES = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/icon.svg'
+  '/manifest.webmanifest',
+  '/icon.svg',
+  '/offline.html'
 ]
 
 // Workbox가 빌드 시 주입하는 프리캐시 매니페스트
 precacheAndRoute(self.__WB_MANIFEST)
+cleanupOutdatedCaches()
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,33 +41,27 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => Promise.all(
       names
-        .filter((n) => ![CACHE_NAME, STATIC_CACHE, DYNAMIC_CACHE, API_CACHE].includes(n))
+        .filter((n) => /^(recipe-book|static|dynamic|api)-v/.test(n) && ![CACHE_NAME, STATIC_CACHE, DYNAMIC_CACHE, API_CACHE].includes(n))
         .map((n) => caches.delete(n))
     )).then(() => self.clients.claim())
   )
 })
 
-self.addEventListener('fetch', (event: FetchEvent) => {
-  const { request } = event
-  const url = new URL(request.url)
-
+// 프리캐시 경로가 먼저 응답한다. 별도 fetch 리스너의 중복 respondWith를 방지한다.
+registerRoute(({ url }) => url.origin === self.location.origin, ({ request, url }) => {
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, API_CACHE))
-    return
+    return networkFirst(request, API_CACHE)
   }
   if (STATIC_FILES.includes(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE))
-    return
+    return cacheFirst(request, STATIC_CACHE)
   }
   if (request.destination === 'script' || request.destination === 'style') {
-    event.respondWith(cacheFirst(request, STATIC_CACHE))
-    return
+    return cacheFirst(request, STATIC_CACHE)
   }
   if (request.destination === 'image') {
-    event.respondWith(cacheFirst(request, DYNAMIC_CACHE))
-    return
+    return cacheFirst(request, DYNAMIC_CACHE)
   }
-  event.respondWith(networkFirst(request, DYNAMIC_CACHE))
+  return networkFirst(request, DYNAMIC_CACHE)
 })
 
 async function cacheFirst(request: Request, cacheName: string) {

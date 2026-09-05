@@ -29,25 +29,11 @@ function IngredientTable({ ingredients = [], onChange }) {
   }
 
   const handleKeyDown = (e, rowIndex, field) => {
-    const isEnter = e.key === 'Enter'
-    const isTab = e.key === 'Tab'
-    if (!isEnter && !isTab) return
+    // Tab/Shift+Tab은 브라우저 기본 이동을 보존하고 Enter만 다음 행으로 이동한다.
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
     e.preventDefault()
-    const nextFieldOrder = ['name', 'amount', 'unit', 'type']
-    const currentIdx = nextFieldOrder.indexOf(field)
-    let nextRow = rowIndex
-    let nextField = field
-    if (isTab) {
-      if (currentIdx < nextFieldOrder.length - 1) {
-        nextField = nextFieldOrder[currentIdx + 1]
-      } else {
-        nextField = nextFieldOrder[0]
-        nextRow = rowIndex + 1
-      }
-    } else if (isEnter) {
-      nextField = field
-      nextRow = rowIndex + 1
-    }
+    const nextRow = rowIndex + 1
+    const nextField = field
     if (nextRow >= ingredients.length) {
       // 마지막 행 복사하여 새 행 추가
       const last = ingredients[ingredients.length - 1] || { name: '', amount: '', unit: 'g', type: 'flour' }
@@ -87,7 +73,7 @@ function IngredientTable({ ingredients = [], onChange }) {
           <option key={ing.id} value={ing.name} />
         ))}
       </datalist>
-      <table className="w-full text-sm">
+      <table className="editor-ingredients w-full text-sm">
         <thead>
           <tr className="border-b border-line">
             <th className="text-left py-1">{t('ingredientTable.ingredientName')}</th>
@@ -116,7 +102,7 @@ function IngredientTable({ ingredients = [], onChange }) {
               </td>
               <td className="py-1 pr-2">
                 <input
-                  type="number"
+                  type="number" min="0" step="any" inputMode="decimal"
                   value={ingredient.amount}
                   onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
                   className="w-full px-2 py-1 border border-line rounded text-sm"

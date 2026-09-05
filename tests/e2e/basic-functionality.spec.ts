@@ -10,7 +10,7 @@ test.describe('기본 기능 테스트', () => {
   const appHeader = (page: import('@playwright/test').Page) => page.locator('#root header')
 
   test('애플리케이션이 로드되어야 한다', async ({ page }) => {
-    await expect(page).toHaveTitle(/레시피북/)
+    await expect(page).toHaveTitle(/내 레시피 목록.*제과제빵 레시피 변환기/)
     await expect(appHeader(page)).toBeVisible()
   })
 
@@ -21,14 +21,14 @@ test.describe('기본 기능 테스트', () => {
     await expect(settingsButton).toBeVisible()
     await settingsButton.click()
     // 클릭 후 설정 탭이 실제로 활성화되는지 검증(Header active 상태 클래스)
-    await expect(settingsButton).toHaveClass(/bg-white\/20/)
+    await expect(settingsButton).toHaveAttribute('aria-current', 'page')
   })
 
   test('도움말 페이지를 열 수 있어야 한다', async ({ page }) => {
     const helpButton = appHeader(page).getByRole('button', { name: '도움말' })
     await expect(helpButton).toBeVisible()
     await helpButton.click()
-    await expect(helpButton).toHaveClass(/bg-white\/20/)
+    await expect(helpButton).toHaveAttribute('aria-current', 'page')
   })
 
   test('반응형 디자인이 작동해야 한다', async ({ page }) => {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 
 function Input({
   label,
@@ -13,6 +13,8 @@ function Input({
   className = '',
   ...props
 }) {
+  const generatedId = useId()
+  const inputId = props.id || generatedId
   const inputClasses = `
     w-full px-3 py-2 border rounded-md
     focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400
@@ -24,13 +26,17 @@ function Input({
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-ink-muted mb-1">
+        <label htmlFor={inputId} className="block text-sm font-medium text-ink-muted mb-1">
           {label}
           {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
       
       <input
+        id={inputId}
+        required={required}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
         type={type}
         value={value}
         onChange={(e) => {
@@ -47,7 +53,7 @@ function Input({
       />
       
       {error && (
-        <p className="mt-1 text-sm text-danger">{error}</p>
+        <p id={`${inputId}-error`} className="mt-1 text-sm text-danger">{error}</p>
       )}
     </div>
   )

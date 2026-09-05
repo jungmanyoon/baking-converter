@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
+import ConfirmModal from '../common/ConfirmModal'
+import { toast } from '@/utils/toast'
 import { useTranslation } from 'react-i18next'
 import Button from '../common/Button.jsx'
 import CategoryHeaderBand from './CategoryHeaderBand'
@@ -7,6 +9,7 @@ import { ClipboardList, RotateCcw } from 'lucide-react'
 
 function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
   const { t } = useTranslation()
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   if (!recipe) {
     return (
@@ -101,7 +104,13 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
   const hasConversion = recipe.conversionDetails || recipe.convertedFrom
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="recipe-detail max-w-5xl mx-auto">
+      <ConfirmModal isOpen={confirmDelete} onClose={() => setConfirmDelete(false)}
+        title={t('components.recipeView.delete')} message={t('workspace.deleteConfirm', { name: recipe.name })}
+        actions={[
+          { label: t('common.cancel'), onClick: () => setConfirmDelete(false) },
+          { label: t('common.delete'), variant: 'danger', onClick: () => { setConfirmDelete(false); onDelete() } },
+        ]} />
       <div className="mb-2">
         <Button size="small" variant="secondary" onClick={onBack}>{t('components.recipeView.back')}</Button>
       </div>
@@ -114,18 +123,22 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
             <Button size="small" onClick={onConvert}>{t('components.recipeView.convert')}</Button>
             <Button size="small" variant="secondary" onClick={onEdit}>{t('components.recipeView.edit')}</Button>
             <Button size="small" variant="secondary" onClick={() => window.print()}>{t('components.recipeView.print')}</Button>
-            <Button variant="secondary" onClick={() => {
+            <Button variant="secondary" onClick={async () => {
+              try {
               if (navigator.share) {
-                navigator.share({
+                await navigator.share({
                   title: recipe.name,
                   text: recipe.description,
                   url: window.location.href
                 })
               } else {
-                alert(t('components.recipeView.shareNotAvailable'))
+                toast.warning(t('components.recipeView.shareNotAvailable'))
+              }
+              } catch (error) {
+                if (error.name !== 'AbortError') toast.warning(t('components.recipeView.shareNotAvailable'))
               }
             }}>{t('components.recipeView.share')}</Button>
-            <Button size="small" variant="danger" onClick={onDelete}>{t('components.recipeView.delete')}</Button>
+            <Button size="small" variant="danger" onClick={() => setConfirmDelete(true)}>{t('components.recipeView.delete')}</Button>
           </div>
         </div>
 

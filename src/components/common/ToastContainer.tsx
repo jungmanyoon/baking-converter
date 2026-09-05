@@ -23,7 +23,7 @@ export const ToastContainer: React.FC = () => {
       // (일반=polite / error=assertive를 Toast에서 직접 지정 → 컨테이너 중복 live region 제거)
       role="region"
       aria-label="알림"
-      className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+      className="toast-stack fixed z-50 flex flex-col gap-2 pointer-events-none"
     >
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">

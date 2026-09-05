@@ -2,6 +2,171 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { --app-header-height: 68px; --bottom-nav-height: 0px; }
+html { scroll-padding-top: calc(var(--app-header-height) + 64px); }
+body { font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, 'Noto Sans KR', sans-serif; }
+button, input, select, textarea { touch-action: manipulation; }
+button, summary { -webkit-tap-highlight-color: transparent; }
+:where(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid #b45309; outline-offset: 3px; }
+input, select, textarea { min-width: 0; }
+.app-main { padding-bottom: var(--bottom-nav-height); min-width: 0; }
+.app-header { height: var(--app-header-height); }
+.app-header > div { max-width: 1440px; }
+.skip-link { position: fixed; top: -100px; left: 16px; z-index: 60; padding: 12px 20px; background: white; }
+.skip-link:focus { top: 8px; }
+.toast-stack { top: calc(var(--app-header-height) + 12px); right: 16px; max-width: calc(100vw - 32px); }
+.bottom-nav button[aria-current="page"] { background: #fffbeb; box-shadow: inset 0 3px #b45309; }
+
+/* 작업 단계는 모바일에서 분리하고 PC에서는 비교 패널을 유지한다. */
+.recipe-workspace { min-height: calc(100dvh - var(--app-header-height) - var(--bottom-nav-height)); }
+.workspace-heading { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+.workspace-tabs { display: none; }
+.workspace-actions { position: relative; flex-shrink: 0; }
+.workspace-actions summary { cursor: pointer; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; }
+.workspace-actions[open] > div { position: absolute; right: 0; top: 100%; z-index: 30; width: 300px; padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 8px 24px #0f172a18; }
+.workspace-original > div:first-child, .workspace-result > div:first-child, .workspace-process > div:first-child { min-height: 48px; padding: 8px 12px; flex-wrap: wrap; }
+.workspace-original th, .workspace-result th { padding-top: 10px; padding-bottom: 10px; }
+.workspace-original .ingredient-row { height: 46px; font-size: 14px; }
+.workspace-result tbody tr { height: 46px; font-size: 14px; }
+.workspace-settings > div { border-color: #e2e8f0; }
+.workspace-settings input, .workspace-settings select { min-height: 36px; }
+.workspace-settings button { min-height: 32px; }
+.workspace-settings .grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.workspace-process > div:last-child { padding: 14px; }
+/* 조리 중 재료가 표 안에 숨지 않도록 모든 행을 문서 흐름에 펼친다. */
+.workspace-content, .workspace-tables, .workspace-tables > div,
+.workspace-original, .workspace-result,
+.workspace-original > div:nth-child(2), .workspace-result > div:nth-child(2) {
+  height: auto; max-height: none; overflow: visible;
+}
+.workspace-content, .workspace-tables { flex: 0 1 auto; }
+.workspace-content { flex-grow: 1; }
+.workspace-tables > div { align-items: start; }
+.workspace-original thead, .workspace-result thead { position: static; }
+.workspace-tools { display: flex; align-items: center; gap: 8px; }
+.workspace-tools > button { display: none; }
+.recipe-library > div:last-child { overflow: visible; }
+.editor-actions { position: sticky; bottom: var(--bottom-nav-height); padding: 12px; background: #ffffffed; border-top: 1px solid #e2e8f0; z-index: 20; }
+.editor-actions button { min-height: 44px; min-width: 100px; }
+.home-page > .container, .home-intro > .container { max-width: 1200px; }
+.home-intro > .container { padding: 32px 24px 24px; }
+.home-stats { margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+.home-stats > div { background: transparent; border: 0; border-radius: 0; padding: 0 12px; border-right: 1px solid #e2e8f0; }
+.home-stats > div:last-child { border-right: 0; }
+.home-shortcuts > button { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 16px; box-shadow: none; }
+.home-shortcuts > button span { font-size: 14px; }
+.home-shortcuts > button > div { border-radius: 10px; }
+.recipe-detail button { min-height: 44px; }
+
+@media (min-width: 1024px) {
+  .recipe-workspace { height: auto; }
+  .workspace-body { overflow: visible; align-items: flex-start; }
+  .workspace-heading { display: none; }
+  .workspace-tools > button { display: inline-flex; align-items: center; gap: 8px; }
+  .workspace-toolbar > div:first-child { flex-wrap: wrap; }
+  .workspace-name { width: 200px; }
+  .workspace-settings { max-width: 38%; }
+  .workspace-original th:nth-child(2) { min-width: 130px; }
+  .workspace-process, .workspace-process > div:last-child { max-height: none; overflow: visible; }
+  .workspace-original .ingredient-row, .workspace-result tbody tr { height: 36px; }
+  .workspace-original > div:first-child, .workspace-result > div:first-child { min-height: 40px; }
+  .workspace-settings { overflow: visible; }
+}
+
+@media (max-width: 1023px) {
+  .workspace-heading { padding: 16px; }
+  .workspace-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: sticky; top: var(--app-header-height); z-index: 30; padding: 8px 12px; gap: 4px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+  .workspace-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border-radius: 8px; color: #64748b; font-size: 13px; font-weight: 600; }
+  .workspace-tabs button[aria-pressed="true"] { background: #fffbeb; color: #92400e; }
+  .workspace-step { font-variant-numeric: tabular-nums; font-size: 11px; opacity: .7; }
+  .workspace-toolbar { padding: 12px 16px; }
+  .workspace-toolbar > div:first-child > div:first-child { flex-wrap: nowrap; }
+  .workspace-name { flex: 1; width: 100%; min-width: 0; }
+  .workspace-toolbar > div:first-child > div:first-child > svg { display: none; }
+  .workspace-toolbar > div:first-child > div:first-child > div.border-l { padding-left: 8px; }
+  .workspace-source { flex-basis: 100%; }
+  .workspace-toolbar:has(.workspace-source) > div:first-child > div:first-child { flex-wrap: wrap; }
+  .workspace-toolbar > div:last-child { gap: 8px; }
+  .workspace-controls { gap: 12px; }
+  .workspace-controls > div:first-child { gap: 10px; }
+  .workspace-controls > div:last-child { align-self: stretch; }
+  .workspace-controls > div:last-child button { flex: 1; }
+  .workspace-actions summary { min-height: 44px; }
+  .workspace-actions[open] > div { position: static; width: 100%; box-shadow: none; margin-top: 8px; }
+  .workspace-body, .workspace-content, .workspace-tables, .workspace-tables > div { display: block; height: auto; overflow: visible; }
+  .recipe-workspace:not([data-mobile-section="settings"]) .workspace-settings,
+  .recipe-workspace:not([data-mobile-section="settings"]) .workspace-controls,
+  .recipe-workspace:not([data-mobile-section="settings"]) .workspace-source,
+  .recipe-workspace:not([data-mobile-section="ingredients"]) .workspace-original,
+  .recipe-workspace:not([data-mobile-section="result"]) .workspace-result,
+  .recipe-workspace:not([data-mobile-section="process"]) .workspace-process,
+  .recipe-workspace[data-mobile-section="settings"] .workspace-content { display: none; }
+  .recipe-workspace[data-mobile-section="process"] .workspace-tables { display: none; }
+  .workspace-settings { border: 0; padding: 0 8px 24px; }
+  .workspace-settings input, .workspace-settings select, .workspace-settings button { min-height: 44px; }
+  .workspace-settings select { width: 100%; }
+  .workspace-settings .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .workspace-original { overflow: visible; }
+  .workspace-original > div:nth-child(2) { overflow: visible; }
+  .workspace-original table, .workspace-original tbody { display: block; }
+  .workspace-original thead { display: none; }
+  .workspace-original .ingredient-row { display: grid; grid-template-columns: minmax(0, 1fr) 94px 40px; gap: 4px 8px; height: auto; padding: 12px; background: #fff; }
+  .workspace-original .ingredient-row td { min-width: 0; border: 0; padding: 0; align-self: center; }
+  .workspace-original .ingredient-row td:nth-child(1) { grid-column: 1; grid-row: 2; }
+  .workspace-original .ingredient-row td:nth-child(2) { grid-column: 1; grid-row: 1; }
+  .workspace-original .ingredient-row td:nth-child(3) { grid-column: 1 / 3; grid-row: 3; }
+  .workspace-original .ingredient-row td:nth-child(4) { grid-column: 2; grid-row: 2; }
+  .workspace-original .ingredient-row td:nth-child(5) { grid-column: 2; grid-row: 1; position: relative; }
+  .workspace-original .ingredient-row td:nth-child(5)::after { content: 'g'; position: absolute; right: 8px; top: 12px; color: #64748b; font-size: 13px; pointer-events: none; }
+  .workspace-original .ingredient-row td:nth-child(5) input { padding-right: 24px !important; }
+  .workspace-original .ingredient-row td:nth-child(6) { grid-column: 3; grid-row: 1; }
+  .workspace-original .ingredient-row input { padding: 8px !important; background: #f8fafc; border: 1px solid #e2e8f0 !important; border-radius: 8px; min-height: 44px; }
+  .workspace-original .ingredient-row select { appearance: auto; min-height: 44px; padding: 4px 8px; color: #475569; font-size: 14px; }
+  .workspace-original button, .workspace-result button { min-height: 44px; min-width: 40px; }
+  .workspace-original > div:last-child, .workspace-result > div:last-child { padding: 12px; font-size: 14px; }
+  .workspace-result td { padding: 8px; }
+  .workspace-result td:last-child { font-size: 18px; }
+  .workspace-process { margin: 12px; border: 1px solid #e2e8f0; border-radius: 12px; }
+  .workspace-process button { min-width: 36px; min-height: 40px; }
+  .workspace-process .group { flex-wrap: wrap; padding: 12px; gap: 6px; }
+  .workspace-process .group > .flex-1 { flex-basis: calc(100% - 110px); }
+  .workspace-process .group > div:nth-child(2) { flex-direction: row; }
+  .workspace-process .group > .flex-1 { flex-basis: calc(100% - 145px); }
+  .workspace-process input { min-height: 44px; min-width: 48px; }
+  .workspace-process textarea { font-size: 16px; }
+}
+
+@media (max-width: 767px) {
+  :root { --app-header-height: 60px; --bottom-nav-height: calc(64px + env(safe-area-inset-bottom)); }
+  .app-header > div { padding-top: 8px; padding-bottom: 8px; }
+  .app-main.container { padding: 16px 12px var(--bottom-nav-height); }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
+  .bottom-nav button { min-height: 64px; }
+  .toast-stack { top: auto; bottom: calc(var(--bottom-nav-height) + 12px); left: 12px; right: 12px; max-width: none; }
+  .toast-stack > div > div { max-width: 100%; min-width: 0; }
+  .recipe-library > div:last-child > div { padding: 0; }
+  .editor-ingredients, .editor-ingredients tbody { display: block; }
+  .editor-ingredients thead { display: none; }
+  .editor-ingredients tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 8px; padding: 12px 0; }
+  .editor-ingredients td { padding: 0; min-width: 0; }
+  .editor-ingredients td:first-child { grid-column: 1 / 3; }
+  .editor-ingredients td:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .editor-ingredients td:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .editor-ingredients td:nth-child(4) { grid-column: 1; grid-row: 3; }
+  .editor-ingredients td:nth-child(5) { grid-column: 2; grid-row: 3; align-self: center; }
+  .editor-ingredients td:last-child { grid-column: 3; grid-row: 1; }
+  .editor-ingredients input, .editor-ingredients select, .editor-ingredients button { min-height: 44px; }
+  .home-intro > .container { padding: 24px 16px 20px; }
+  .home-stats > div { padding: 0 8px; }
+  .home-stats > div > div:first-child { font-size: 11px; }
+  .home-stats svg { display: none; }
+  .home-shortcuts > button { padding: 12px; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
 @layer base {
   body {
     @apply bg-surface-canvas text-ink;
@@ -70,6 +235,10 @@
 /* 인쇄/PDF (C4): 앱 네비 등 크롬을 숨기고, 대시보드의 고정 높이·스크롤 컨테이너를
    펼쳐 내용이 한 화면에 잘리지 않도록 한다. (아이콘 등 svg 크기는 건드리지 않음) */
 @media print {
+  .app-main { padding: 0 !important; }
+  .recipe-workspace, .workspace-content, .workspace-body, .workspace-tables, .workspace-tables > div { display: block !important; height: auto !important; min-height: 0 !important; }
+  .workspace-original, .workspace-result, .workspace-process { display: block !important; max-height: none !important; }
+  .workspace-settings, .workspace-controls, .workspace-heading button, .bottom-nav, .toast-stack, .skip-link { display: none !important; }
   header { display: none !important; }
   .print-hide { display: none !important; }
   /* overflow 유틸이 걸린 스크롤 컨테이너와 인라인 고정 높이(사이드바/공정패널)를 해제 */

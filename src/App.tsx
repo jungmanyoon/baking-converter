@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@stores/useAppStore'
 
@@ -10,7 +10,7 @@ import Footer from '@components/common/Footer'
 import PWAStatus from '@components/pwa/PWAStatus.jsx'
 import PWAInstallPrompt from '@components/pwa/PWAInstallPrompt.jsx'
 import { ToastContainer } from '@components/common/ToastContainer'
-import { useRecipeStore } from '@stores/useRecipeStore'
+import { useRecipeStore, useRecipeStorageStatus } from '@stores/useRecipeStore'
 import { useAutoSave } from '@/hooks/useAutoSave'
 
 // 로딩 스피너 컴포넌트 (SEO를 위한 텍스트 콘텐츠 포함)
@@ -99,7 +99,15 @@ const BASE_TITLE = '제과제빵 레시피 변환기'
 function App() {
     const { t } = useTranslation()
     const { activeTab, setActiveTab } = useAppStore()
-    const { currentRecipe, updateRecipe, setCurrentRecipe, deleteRecipe } = useRecipeStore()
+    const { currentRecipe, addRecipe, updateRecipe, setCurrentRecipe, deleteRecipe } = useRecipeStore()
+    const storageFailed = useRecipeStorageStatus(state => state.failed)
+
+    // 앱이 그려지는 즉시 초기 안내를 치워 두 화면이 겹치거나 스크롤이 튀지 않게 한다.
+    useLayoutEffect(() => {
+        const fallback = document.getElementById('seo-content')
+        if (fallback) fallback.hidden = true
+        return () => { if (fallback) fallback.hidden = false }
+    }, [])
 
     // 로컬 폴더 자동 저장 (레시피/설정 변경 시 자동 동기화)
     useAutoSave()
@@ -149,9 +157,13 @@ function App() {
         if (currentRecipe?.id) {
             // 기존 레시피 업데이트 (중복 생성 방지). updatedAt은 updateRecipe 내부에서 갱신됨
             updateRecipe(currentRecipe.id, { ...updated, updatedAt: new Date() })
-            setCurrentRecipe(null)
-            setActiveTab('recipes')
+        } else {
+            addRecipe(updated)
         }
+        if (useRecipeStorageStatus.getState().failed) return false
+        setCurrentRecipe(null)
+        setActiveTab('recipes')
+        return true
     }
 
     // 현재 탭에 해당하는 컴포넌트 렌더
@@ -216,14 +228,19 @@ function App() {
     const content = renderActive()
 
     return (
-        <div className="min-h-screen bg-surface-canvas flex flex-col">
+        <div className="app-shell min-h-dvh bg-surface-canvas flex flex-col">
+            <a href="#main-content" className="skip-link" onClick={event => {
+                event.preventDefault()
+                document.getElementById('main-content')?.focus()
+            }}>{t('workspace.skipContent')}</a>
             <Header />
             <PWAStatus />
             <PWAInstallPrompt />
             <ToastContainer />
+            {storageFailed && <div role="alert" className="border-b border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-700">{t('workspace.saveFailed')}</div>}
 
-            {/* 모바일: 하단 고정 탭바(BottomNav) 높이만큼 여백 확보(pb-16) / sm 이상: 여백 없음 */}
-            <main className={`flex-grow pb-16 sm:pb-0 ${isFullWidth ? "" : "container mx-auto px-4 py-6"}`}>
+            {/* 모바일 하단 메뉴와 기기 안전 영역만큼 본문 여백을 확보한다. */}
+            <main id="main-content" tabIndex={-1} className={`app-main flex-grow ${isFullWidth ? "" : "container mx-auto px-4 py-6"}`}>
                 {isDev ? content : (
                     <Suspense fallback={<LoadingSpinner />}>
                         {content}

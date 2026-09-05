@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Input from '../common/Input.jsx'
 import Button from '../common/Button.jsx'
 import IngredientTable from './IngredientTable.jsx'
+import { recipeToEditor, editorToRecipe } from '@/utils/recipeEditing'
 import { toast } from '@utils/toast'
 
 function RecipeEditor({ recipe, onSave, onCancel }) {
@@ -22,17 +23,7 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
     if (recipe) {
       // 도메인 Recipe에는 instructions/notes가 없을 수 있어(steps만 존재) 통째 교체 시
       // 렌더에서 formData.instructions.map이 크래시한다. 기본값과 병합하고 배열 필드를 강제 정규화.
-      setFormData({
-        name: '',
-        description: '',
-        category: 'bread',
-        method: 'straight',
-        servings: 1,
-        notes: '',
-        ...recipe,
-        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
-        instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-      })
+      setFormData(recipeToEditor(recipe))
     }
   }, [recipe])
 
@@ -65,7 +56,7 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
     // 재료 유효성 검사
     const validIngredients = formData.ingredients.filter(ing =>
       ing.name && ing.name.trim() !== '' &&
-      ing.amount && parseFloat(ing.amount) > 0
+      Number.isFinite(Number(ing.amount)) && Number(ing.amount) > 0
     )
 
     if (validIngredients.length === 0) {
@@ -74,13 +65,12 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
     }
 
     const recipeToSave = {
-      ...formData,
-      ingredients: validIngredients,
+      ...editorToRecipe({ ...formData, ingredients: validIngredients }, recipe),
       id: recipe?.id || Date.now().toString(),
+      createdAt: recipe?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    onSave(recipeToSave)
-    toast.success(t('components.recipeEditor.toast.saved'))
+    if (onSave(recipeToSave) !== false) toast.success(t('components.recipeEditor.toast.saved'))
   }
   
   const handleCancel = () => {
@@ -96,7 +86,7 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="recipe-editor max-w-5xl mx-auto">
       <div className="card mb-3">
         <h2 className="text-base font-semibold mb-2">{t('components.recipeEditor.recipeInfo')}</h2>
 
@@ -138,6 +128,9 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
             <option value="straight">{t('components.recipeEditor.methods.straight')}</option>
             <option value="sponge">{t('components.recipeEditor.methods.sponge')}</option>
             <option value="poolish">{t('components.recipeEditor.methods.poolish')}</option>
+            {['tangzhong', 'autolyse', 'levain', 'coldFerment', 'retard', 'overnight', 'sourdough'].map(method => (
+              <option key={method} value={method}>{t(`method.${method}`, { defaultValue: method })}</option>
+            ))}
             <option value="biga">{t('components.recipeEditor.methods.biga')}</option>
             <option value="coldFermentation">{t('components.recipeEditor.methods.coldFermentation')}</option>
             <option value="noTime">{t('components.recipeEditor.methods.noTime')}</option>
@@ -186,7 +179,7 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
                 size="small"
                 onClick={() => {
                   const newInstructions = formData.instructions.filter((_, i) => i !== index)
-                  handleInputChange('instructions', newInstructions)
+                  setFormData(prev => ({ ...prev, instructions: newInstructions, steps: (prev.steps || []).filter((_, i) => i !== index) }))
                 }}
               >
                 {t('common.delete')}
@@ -216,7 +209,7 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
         />
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="editor-actions flex justify-end gap-3">
         <Button size="small" variant="secondary" onClick={handleCancel}>{t('common.cancel')}</Button>
         <Button size="small" onClick={handleSave}>{t('common.save')}</Button>
       </div>

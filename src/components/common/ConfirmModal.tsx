@@ -5,7 +5,7 @@
  * 2버튼/3버튼(덮어쓰기/사본으로/취소 등)을 모두 표현하고 재사용 가능하다.
  * 프로젝트 모달 컨벤션(fixed inset-0 bg-black/50, surface-paper, lucide) 준수.
  */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -37,16 +37,35 @@ export default function ConfirmModal({
   actions,
 }: ConfirmModalProps) {
   const { t } = useTranslation()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
 
   // Escape 로 닫기
   useEffect(() => {
     if (!isOpen) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') closeRef.current()
+      if (e.key === 'Tab') {
+        const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+        if (!buttons?.length) return
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, onClose])
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -57,7 +76,8 @@ export default function ConfirmModal({
       role="presentation"
     >
       <div
-        className="bg-surface-paper rounded-lg shadow-xl w-full max-w-md p-5 sm:p-6"
+        ref={dialogRef}
+        className="bg-surface-paper rounded-lg shadow-xl w-full max-w-md max-h-[90dvh] overflow-auto p-5 sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-label={title}

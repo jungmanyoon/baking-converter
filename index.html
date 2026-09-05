@@ -359,29 +359,5 @@
 
     <script type="module" src="/src/main.jsx"></script>
 
-    <!-- React 마운트 후 정적 콘텐츠 숨김 (크롤러용으로 DOM에는 유지) -->
-    <script>
-        // React가 마운트되면 정적 콘텐츠를 시각적으로만 숨김 (DOM에는 유지하여 크롤러가 볼 수 있음)
-        window.addEventListener('DOMContentLoaded', function() {
-            var checkReact = setInterval(function() {
-                var root = document.getElementById('root');
-                var seoContent = document.getElementById('seo-content');
-                if (root && root.children.length > 0) {
-                    // React가 마운트됨 - 정적 콘텐츠 숨기기 (크롤러용으로 DOM 유지)
-                    if (seoContent) {
-                        seoContent.style.position = 'absolute';
-                        seoContent.style.left = '-9999px';
-                        seoContent.style.width = '1px';
-                        seoContent.style.height = '1px';
-                        seoContent.style.overflow = 'hidden';
-                        seoContent.setAttribute('aria-hidden', 'true');
-                    }
-                    clearInterval(checkReact);
-                }
-            }, 100);
-            // 10초 후 체크 중단
-            setTimeout(function() { clearInterval(checkReact); }, 10000);
-        });
-    </script>
 </body>
 </html>

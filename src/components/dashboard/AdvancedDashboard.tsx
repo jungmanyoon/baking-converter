@@ -11,9 +11,10 @@
  * - 레시피 테이블 컴팩트화
  */
 
+import { syncRecipePhases } from '@/utils/recipeEditing';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useRecipeStore } from '@/stores/useRecipeStore';
+import { useRecipeStore, useRecipeStorageStatus } from '@/stores/useRecipeStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLayoutSettings } from '@/hooks/useLayoutSettings';
@@ -84,6 +85,7 @@ interface IngredientEntry {
   note: string;
   moistureContent?: number;
   phase?: string;  // 'tangzhong', 'preferment', 'main', 'topping' 등
+  phaseId?: string;
   phaseOrder?: number;  // 단계 내 순서
 }
 
@@ -231,6 +233,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       <div className="flex items-center justify-between px-3 py-2 hover:bg-surface-muted">
         <button
           onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
           className="flex-1 flex items-center gap-2 text-sm font-semibold text-ink-muted text-left"
         >
           {icon}
@@ -251,7 +254,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           )}
-          <button onClick={() => setIsOpen(!isOpen)} className="p-1">
+          <button aria-label={title} aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)} className="p-1">
             {isOpen ? <ChevronDown className="w-4 h-4 text-ink-disabled" /> : <ChevronRight className="w-4 h-4 text-ink-disabled" />}
           </button>
         </div>
@@ -402,6 +405,7 @@ const AdvancedDashboard: React.FC = () => {
   // 순수 조건부 렌더용 값: 상태 강제변이 없이 표시만 토글(저위험).
   const conversionMode = layoutSettings.conversionMode;
   const isExpertMode = conversionMode === 'expert';
+  const [mobileSection, setMobileSection] = useState('ingredients');
 
   // 제품 정보
   const [productName, setProductName] = useState(t('advDashboard.defaultRecipeName'));
@@ -567,6 +571,7 @@ const AdvancedDashboard: React.FC = () => {
                 amount: parseFloat(ing.amount) || 0,
                 note: ing.note || '',
                 moistureContent: ing.moistureContent,
+                phaseId: phase.id,
                 phase: phase.type || phase.id || 'main',  // 단계 타입
                 phaseOrder: phase.order || 0,  // 단계 순서
               });
@@ -602,6 +607,7 @@ const AdvancedDashboard: React.FC = () => {
             amount: parseFloat(ing.amount) || 0,
             note: ing.note || '',
             moistureContent: ing.moistureContent,
+            phaseId: ing.phaseId,
             phase: ing.phase || 'main',  // 저장된 phase 값 로드, 없으면 기본값: 본반죽
             phaseOrder: ing.phaseOrder || 0,
           });
@@ -658,7 +664,7 @@ const AdvancedDashboard: React.FC = () => {
       // 제법 설정 로드
       if (currentRecipe.method) {
         const methodData = currentRecipe.method as any;
-        let methodType = methodData.method || methodData.type || 'straight';
+        let methodType = typeof methodData === 'string' ? methodData : methodData.method || methodData.type || 'straight';
         // sourdough는 levain으로 매핑 (동일한 개념)
         if (methodType === 'sourdough') methodType = 'levain';
         // 유효한 제법 타입으로 제한
@@ -833,8 +839,7 @@ const AdvancedDashboard: React.FC = () => {
         setYieldStageSelection({ ...DEFAULT_STAGE_SELECTION });
       }
 
-      // 로드 완료 알림
-      addToast({ type: 'success', message: t('advDashboard.recipeLoaded', { name: currentRecipe.name }) });
+
     }
   }, [currentRecipe]);
 
@@ -1678,6 +1683,7 @@ const AdvancedDashboard: React.FC = () => {
       isFlour: ing.category === 'flour',
       note: ing.note || '',  // 메모 저장
       moistureContent: ing.moistureContent,  // 수분 함량 저장
+      phaseId: ing.phaseId,
       phase: ing.phase || 'main',  // 공정 단계 저장
     }));
 
@@ -1717,6 +1723,7 @@ const AdvancedDashboard: React.FC = () => {
       prepTime: 30,
       totalTime: 60 + oven.firstBake.time + oven.secondBake.time,
       ingredients: ingredientsToSave,
+      phases: syncRecipePhases(currentRecipe?.phases, ingredientsToSave),
       steps: stepsToSave,
       ovenSettings: ovenSettingsToSave,
       method: {
@@ -1762,7 +1769,9 @@ const AdvancedDashboard: React.FC = () => {
     const targetId = options?.asCopy ? undefined : (overwriteId || currentRecipe?.id);
     if (targetId) {
       updateRecipe(targetId, recipeData as any);
-      addToast({ type: 'success', message: t('advDashboard.recipeUpdated', { name: productName }) });
+      addToast(useRecipeStorageStatus.getState().failed
+        ? { type: 'error', message: t('workspace.saveFailed'), duration: 0 }
+        : { type: 'success', message: t('advDashboard.recipeUpdated', { name: productName }) });
     } else {
       // 사본으로 저장: 이름 충돌(모달 재발) 방지를 위해 접미사 부여
       const copyName = options?.asCopy
@@ -1776,7 +1785,9 @@ const AdvancedDashboard: React.FC = () => {
         createdAt: new Date(),
       };
       addRecipe(newRecipe as any);
-      addToast({ type: 'success', message: t('advDashboard.recipeSaved', { name: copyName }) });
+      addToast(useRecipeStorageStatus.getState().failed
+        ? { type: 'error', message: t('workspace.saveFailed'), duration: 0 }
+        : { type: 'success', message: t('advDashboard.recipeSaved', { name: copyName }) });
     }
   }, [productName, productType, source, pans, oven, ingredients, processes, memo, convertedProduct, originalProduct, method, originalPan, multiplier, isPanLinked, yieldStageSelection, currentRecipe, defaultPanType, defaultCategory, addRecipe, updateRecipe, addToast, t]);
 
@@ -2092,6 +2103,7 @@ const AdvancedDashboard: React.FC = () => {
     setIngredients(prev => prev.map(ing => {
       if (ing.id !== id) return ing;
       const updated = { ...ing, [field]: value };
+      if (field === 'phase') updated.phaseId = undefined;
       if (field === 'category') updated.subCategory = CATEGORY_LABELS[value as keyof typeof CATEGORY_LABELS] || '기타';
       // 무게 변경 시 비율 자동 계산
       if (field === 'amount') {
@@ -2141,11 +2153,28 @@ const AdvancedDashboard: React.FC = () => {
   // ============================================
 
   return (
-    // 모바일: 세로 스택으로 흐르며 자연 스크롤 허용(min-h-screen) / 데스크톱(lg): 기존 고정 h-screen 보존
-    <div className="min-h-screen lg:h-screen flex flex-col bg-surface-muted text-sm">
+    // 재료 표의 모든 행을 펼치고 모바일에서는 작업별로 화면을 전환한다.
+    <div className="recipe-workspace flex flex-col bg-surface-muted text-sm" data-mobile-section={mobileSection}>
+      <div className="workspace-heading">
+        <div>
+          <p className="text-xs font-semibold text-brand-700 mb-1">{t('workspace.eyebrow')}</p>
+          <h1 className="text-xl font-bold">{t('nav.converter')}</h1>
+        </div>
+        <button onClick={handleSaveRecipe} className="btn-primary inline-flex items-center gap-2">
+          <Save size={18} />{t('advDashboard.save')}
+        </button>
+      </div>
+      <nav className="workspace-tabs print-hide" aria-label={t('workspace.navigation')}>
+        {(['ingredients', 'settings', 'result', 'process'] as const).map((section, index) => (
+          <button key={section} aria-pressed={mobileSection === section}
+            onClick={() => { setMobileSection(section); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
+            <span className="workspace-step">{index + 1}</span>{t(`workspace.${section}`)}
+          </button>
+        ))}
+      </nav>
       {/* ===== 상단 헤더 ===== */}
       {/* 모바일: 세로 정렬(flex-col)로 컨트롤 줄바꿈 / 데스크톱(lg): 기존 가로 정렬 보존 */}
-      <div className="bg-surface-paper border-b shadow-sm px-3 sm:px-4 py-2 flex flex-col gap-2 flex-shrink-0">
+      <div className="workspace-toolbar bg-surface-paper border-b px-3 sm:px-4 py-3 flex flex-col gap-3 flex-shrink-0">
         {/* 1줄: 제품 정보(좌) + 배수 조절(우) — 설정 입력 */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-3">
         {/* 좌측: 제품 정보 + 출처 */}
@@ -2155,7 +2184,8 @@ const AdvancedDashboard: React.FC = () => {
             type="text"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            className="text-lg font-bold w-36 min-h-[44px] lg:min-h-0 border-b border-transparent hover:border-line focus:border-brand-500 focus:outline-none"
+            aria-label={t('advDashboard.productName')}
+            className="workspace-name text-lg font-bold w-36 min-h-[44px] lg:min-h-0 border-b border-transparent hover:border-line focus:border-brand-500 focus:outline-none"
             placeholder={t('advDashboard.productName')}
           />
           {exampleLoaded && (
@@ -2190,7 +2220,7 @@ const AdvancedDashboard: React.FC = () => {
           </div>
           {/* 출처(source): 메타데이터 — 전문가 모드에서만 노출 */}
           {isExpertMode && (
-          <div className="flex items-center gap-1 text-xs border-l pl-3">
+          <div className="workspace-source flex items-center gap-1 text-xs border-l pl-3">
             <select
               value={source.type}
               onChange={(e) => setSource({ ...source, type: e.target.value as SourceType })}
@@ -2218,7 +2248,7 @@ const AdvancedDashboard: React.FC = () => {
         </div>
 
         {/* 우측 그룹: 배수 조절 + 표시 모드 토글 (한 묶음으로 우측 정렬) */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3">
+        <div className="workspace-controls flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3">
         {/* 중앙: 배수 조절 (모바일: 줄바꿈 허용, 데스크톱: 기존 한 줄) */}
         <div className="flex items-center flex-wrap gap-2 lg:gap-3">
           <button
@@ -2313,7 +2343,9 @@ const AdvancedDashboard: React.FC = () => {
             </>
             )}
           </div>
-          <div className="flex flex-wrap gap-1.5 print-hide">
+          <div className="workspace-tools print-hide">
+          <button onClick={handleSaveRecipe} className="btn-primary"><Save size={18} />{t('advDashboard.save')}</button>
+          <details className="workspace-actions print-hide"><summary>{t('workspace.moreActions')}</summary><div className="flex flex-wrap gap-2 py-2">
             {/* 초기화: 부가 기능 — 전문가 모드에서만 노출 */}
             {isExpertMode && (
             <button
@@ -2365,21 +2397,22 @@ const AdvancedDashboard: React.FC = () => {
               <Timer className="w-4 h-4" />{t('advDashboard.timer', { defaultValue: '타이머' })}
             </button>
             )}
+          </div></details>
           </div>
         </div>
       </div>
 
       {/* ===== 메인 콘텐츠 ===== */}
       {/* 모바일: 세로 스택(flex-col)으로 사이드바→본문 순서 흐름 / 데스크톱(lg): 기존 가로 분할 보존 */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-visible lg:overflow-hidden">
+      <div className="workspace-body flex-1 min-h-0 min-w-0 flex flex-col lg:flex-row">
         {/* 좌측 사이드바 + 리사이즈 핸들: 전문가 전용. 간단 모드는 전체 숨김 → 중앙 표가 전체폭.
             팬/오븐/제법 등 도메인 state는 언마운트돼도 컴포넌트에 유지되어 전문가 복귀 시 그대로 복원(리셋 없음). */}
-        {isExpertMode && (
+        {(isExpertMode || !isDesktop) && (
         <>
         {/* ===== 좌측 사이드바 (리사이즈 가능) ===== */}
         {/* 모바일: 전체 너비(w-full)로 상단 배치 / 데스크톱(lg): 인라인 고정폭 적용 (isDesktop일 때만 width 지정해 가로 스크롤 방지) */}
         <div
-          className="bg-surface-paper border-r flex-shrink-0 w-full lg:w-auto overflow-y-auto"
+          className="workspace-settings bg-surface-paper border-r flex-shrink-0 w-full lg:w-auto overflow-y-auto"
           style={isDesktop ? { width: layoutSettings.sidebarWidth } : undefined}
         >
 
@@ -2875,7 +2908,7 @@ const AdvancedDashboard: React.FC = () => {
         )}
 
         {/* ===== 중앙: 레시피 테이블 (컴팩트) ===== */}
-        <div className="flex-1 flex flex-col overflow-visible lg:overflow-hidden min-h-0">
+        <div className="workspace-content flex-1 min-w-0 flex flex-col overflow-visible lg:overflow-hidden min-h-0">
           {/* 새 레시피 안내: 빈 상태일 때 직접 입력 또는 예시 불러오기 유도 */}
           {isEmptyRecipe && (
             <div className="mx-1 mt-1 rounded-md bg-brand-50 border border-brand-200 px-3 py-2 flex items-center justify-between gap-2 flex-wrap flex-shrink-0">
@@ -2891,12 +2924,12 @@ const AdvancedDashboard: React.FC = () => {
               </button>
             </div>
           )}
-          <div className="flex-1 overflow-auto p-1 min-h-0">
+          <div className="workspace-tables flex-1 overflow-auto p-3 min-h-0">
             {/* 모바일: 원본/변환을 세로 스택(grid-cols-1)으로 가로 스크롤 방지 / 데스크톱(lg): 변환 시에만 2열, 미변환 시 원본표 전체폭 */}
-            <div className={`grid gap-1 h-full grid-cols-1 ${isConverted ? 'lg:grid-cols-2' : ''}`}>
+            <div className={`grid gap-3 h-full grid-cols-1 ${isConverted ? 'xl:grid-cols-2' : ''}`}>
 
               {/* 원래 레시피 */}
-              <div className="bg-surface-paper rounded shadow-sm border flex flex-col overflow-hidden min-w-0">
+              <div className="workspace-original bg-surface-paper rounded-xl border flex flex-col overflow-hidden min-w-0">
                 <div className="bg-surface-muted border-b px-2 py-1 flex items-center justify-between flex-shrink-0 gap-2">
                   <span className="font-semibold text-ink-muted flex items-center gap-1 text-xs">
                     <Droplets className="w-3 h-3 flex-shrink-0" />{t('advDashboard.originalRecipe')}
@@ -2913,8 +2946,8 @@ const AdvancedDashboard: React.FC = () => {
                       <tr className={`text-ink-subtle font-semibold tracking-wide ${dynamicStyles.fontSize}`}>
                         <th className="px-1.5 py-1 text-left w-16">{t('advDashboard.category')}</th>
                         <th className="px-1.5 py-1 text-left">{t('advDashboard.ingredients')}</th>
-                        <th className={`px-1.5 py-1 text-left w-20 hidden ${isExpertMode ? 'sm:table-cell' : ''}`}>{t('advDashboard.process')}</th>
-                        <th className={`px-1.5 py-1 text-right w-14 hidden ${isExpertMode ? 'sm:table-cell' : ''}`}>{t('advDashboard.tableHeaderPercent')}</th>
+                        <th className={`px-1.5 py-1 text-left w-20 ${isExpertMode ? '' : 'hidden'}`}>{t('advDashboard.process')}</th>
+                        <th className={`px-1.5 py-1 text-right w-14 ${isExpertMode ? '' : 'hidden'}`}>{t('advDashboard.tableHeaderPercent')}</th>
                         <th className="px-1.5 py-1 text-right w-16 border-l border-line">{t('advDashboard.tableHeaderGram')}</th>
                         <th className="w-5"></th>
                       </tr>
@@ -2928,7 +2961,7 @@ const AdvancedDashboard: React.FC = () => {
                             {/* 단계 구분선 (2개 이상 단계가 있을 때만 표시) */}
                             {hasMultiplePhases && (
                               <tr className={`${phaseMeta.bgColor} ${phaseMeta.borderColor} border-y-2`}>
-                                <td colSpan={5} className={`px-2 py-1 ${phaseMeta.textColor} font-semibold text-xs tracking-wide`}>
+                                <td colSpan={6} className={`px-2 py-1 ${phaseMeta.textColor} font-semibold text-xs tracking-wide`}>
                                   <span className="flex items-center gap-1.5">
                                     <PhaseIcon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
                                     <span>{t(phaseMeta.labelKey)}</span>
@@ -2948,9 +2981,9 @@ const AdvancedDashboard: React.FC = () => {
                               return (
                                 // key: 원본 재료 id는 전역 고유하지만 단계(phase) 스코프를 prefix로
                                 // 추가해 단계 재배치 시에도 안정적이고 고유한 키를 보장
-                                <tr key={`${phase}-${ing.id}`} className={`border-b border-line-soft hover:bg-surface-muted ${dynamicStyles.rowHeight}`}>
+                                <tr key={`${phase}-${ing.id}`} className={`ingredient-row border-b border-line-soft hover:bg-surface-muted ${dynamicStyles.rowHeight}`}>
                                   <td className="px-1.5 rounded focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-inset">
-                                    <select value={ing.category} onChange={(e) => updateIngredient(ing.id, 'category', e.target.value)}
+                                    <select aria-label={`${ing.name} ${t('advDashboard.category')}`} value={ing.category} onChange={(e) => updateIngredient(ing.id, 'category', e.target.value)}
                                       className="w-full text-xs border-0 bg-transparent p-0 focus:outline-none appearance-none cursor-pointer">
                                       {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                                     </select>
@@ -2979,7 +3012,7 @@ const AdvancedDashboard: React.FC = () => {
                                       maxSuggestions={6}
                                     />
                                   </td>
-                                  <td className={`px-1.5 rounded focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-inset hidden ${isExpertMode ? 'sm:table-cell' : ''}`}>
+                                  <td className={`px-1.5 rounded focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-inset ${isExpertMode ? '' : 'hidden'}`}>
                                     <select
                                       value={ing.phase || 'main'}
                                       onChange={(e) => updateIngredient(ing.id, 'phase', e.target.value)}
@@ -2995,13 +3028,13 @@ const AdvancedDashboard: React.FC = () => {
                                       })}
                                     </select>
                                   </td>
-                                  <td className={`px-1.5 text-right font-mono text-ink-subtle text-xs hidden ${isExpertMode ? 'sm:table-cell' : ''}`}>{flourTotal > 0 ? Math.round((ing.amount / flourTotal) * 1000) / 10 : 0}%</td>
+                                  <td className={`px-1.5 text-right font-mono text-ink-subtle text-xs ${isExpertMode ? '' : 'hidden'}`}>{flourTotal > 0 ? Math.round((ing.amount / flourTotal) * 1000) / 10 : 0}%</td>
                                   <td className="px-1.5 border-l border-line rounded focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-inset">
-                                    <input type="number" value={ing.amount} onChange={(e) => updateIngredient(ing.id, 'amount', parseFloat(e.target.value) || 0)}
+                                    <input type="number" min="0" step="any" inputMode="decimal" aria-label={`${ing.name} ${t('advDashboard.tableHeaderGram')}`} value={ing.amount} onChange={(e) => updateIngredient(ing.id, 'amount', Math.max(0, parseFloat(e.target.value) || 0))}
                                       className="w-full text-right font-mono bg-transparent border-0 p-0 focus:outline-none text-sm font-semibold text-ink" />
                                   </td>
                                   <td className="px-0.5 print-hide">
-                                    <button onClick={() => removeIngredient(ing.id)} className="p-2 -m-2 text-ink-subtle hover:text-danger" title={t('advDashboard.removeIngredient', { defaultValue: '재료 삭제' })}>
+                                    <button onClick={() => removeIngredient(ing.id)} className="p-2 text-ink-subtle hover:text-danger" title={t('advDashboard.removeIngredient', { defaultValue: '재료 삭제' })}>
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   </td>
@@ -3021,8 +3054,8 @@ const AdvancedDashboard: React.FC = () => {
 
               {/* 변환 레시피 (단계별 구분선 포함) — 배수가 1이면 원본과 동일하므로 숨김 */}
               {/* H7: 태블릿/모바일에선 변환(결과) 표를 먼저 노출(결과우선). 데스크톱(lg) 2열에선 기존 좌우 배치 유지. */}
-              {isConverted && (
-              <div className="order-first lg:order-none bg-surface-paper rounded shadow-sm border border-info-200 flex flex-col overflow-hidden min-w-0">
+              {(isConverted || !isDesktop) && (
+              <div className="workspace-result bg-surface-paper rounded-xl border border-info-200 flex flex-col overflow-hidden min-w-0">
                 <div className="bg-info-50 border-b border-info-200 px-2 py-1 flex items-center justify-between flex-shrink-0 gap-2">
                   <span className="font-semibold text-info-700 flex items-center gap-1 text-xs">
                     <ThermometerSun className="w-3 h-3 flex-shrink-0" />{t('advDashboard.convertedRecipe')}
@@ -3098,7 +3131,7 @@ const AdvancedDashboard: React.FC = () => {
               )}
 
               {/* 변환 없음: 배수/팬을 바꾸면 변환표가 표시된다는 조용한 안내 */}
-              {!isConverted && (
+              {!isConverted && isDesktop && (
                 <div className="rounded-md bg-surface-muted border border-line px-3 py-2 text-xs text-ink-muted flex items-center gap-1.5 self-start">
                   <Info className="w-3.5 h-3.5 flex-shrink-0" />
                   {isExpertMode
@@ -3121,8 +3154,8 @@ const AdvancedDashboard: React.FC = () => {
           {/* ===== 하단: 공정 패널 (리사이즈 가능) ===== */}
           {/* 모바일: 고정 높이 인라인 style 미적용(내용만큼 자연 확장) / 데스크톱(lg): 기존 리사이즈 높이 보존 */}
           <div
-            className="bg-surface-paper border-t flex-shrink-0 overflow-hidden flex flex-col"
-            style={isDesktop ? { height: layoutSettings.processPanelHeight } : undefined}
+            className="workspace-process bg-surface-paper border-t flex-shrink-0 overflow-hidden flex flex-col"
+            style={isDesktop ? { minHeight: layoutSettings.processPanelHeight } : undefined}
           >
             <div className="bg-surface-muted border-b px-3 py-1 flex items-center justify-between flex-shrink-0">
               <span className="font-semibold text-ink-muted flex items-center gap-1.5 text-sm">
@@ -3308,7 +3341,7 @@ const AdvancedDashboard: React.FC = () => {
                         <ThermometerSun className="w-3 h-3" />
                       </button>
                     )}
-                    <button onClick={() => removeProcess(proc.id)} className="p-2 -m-2 text-ink-subtle hover:text-danger opacity-100 lg:opacity-0 lg:group-hover:opacity-100 print-hide" title={t('advDashboard.removeProcess', { defaultValue: '공정 삭제' })}>
+                    <button onClick={() => removeProcess(proc.id)} className="p-2 text-ink-subtle hover:text-danger opacity-100 lg:opacity-0 lg:group-hover:opacity-100 print-hide" title={t('advDashboard.removeProcess', { defaultValue: '공정 삭제' })}>
                       <X className="w-3.5 h-3.5" />
                     </button>
                     {/* 너비 조절 핸들 (데스크톱 전용 - 모바일 세로 1열에선 불필요) */}

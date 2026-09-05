@@ -22,13 +22,13 @@ function BottomNav() {
 
   return (
     <nav
-      className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-paper/95 backdrop-blur border-t border-line flex"
+      className="bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-paper/95 backdrop-blur border-t border-line flex"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label={t('nav.primary', { defaultValue: '주요 메뉴' })}
     >
       {tabs.map(tab => {
         const Icon = tab.icon
-        const active = activeTab === tab.id || (tab.alias && activeTab === tab.alias)
+        const active = activeTab === tab.id || (tab.id === 'recipes' && ['view', 'editor'].includes(activeTab)) || (tab.alias && activeTab === tab.alias)
         return (
           <button
             key={tab.id}
