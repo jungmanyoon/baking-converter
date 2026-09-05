@@ -48,7 +48,7 @@ const RecipeListPage: React.FC = () => {
 
   const handleEdit = useCallback((recipe: any) => {
     setCurrentRecipe(recipe)
-    setTimeout(() => setActiveTab('editor'), 0)
+    setTimeout(() => setActiveTab(recipe.conversion ? 'dashboard' : 'editor'), 0)
   }, [setCurrentRecipe, setActiveTab])
 
   // 실제 새 레시피 생성 함수

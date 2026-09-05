@@ -181,7 +181,7 @@ function App() {
                     <RecipeView
                         recipe={currentRecipe}
                         onBack={() => setActiveTab('recipes')}
-                        onEdit={() => setActiveTab('editor')}
+                        onEdit={() => setActiveTab(currentRecipe?.conversion ? 'dashboard' : 'editor')}
                         onConvert={() => setActiveTab('dashboard')}
                         onDelete={() => {
                             if (currentRecipe?.id) deleteRecipe(currentRecipe.id)

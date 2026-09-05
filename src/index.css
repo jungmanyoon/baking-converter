@@ -247,3 +247,29 @@ input, select, textarea { min-width: 0; }
   .card, [class*="shadow"] { box-shadow: none !important; }
   body { background: #fff !important; }
 }
+/* 저장한 변환본은 조리용 계량표를 중심으로 읽는다. 표 안에 스크롤을 만들지 않는다. */
+.conversion-save-hint { padding: 6px 16px; font-size: 12px; color: #855020; background: #fff8eb; }
+.saved-weighing-sheet { background: var(--surface-paper, white); border: 1px solid #e2ded6; border-radius: 12px; overflow: visible; }
+.saved-sheet-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; }
+.saved-sheet-heading h2 { font-size: 18px; font-weight: 700; }
+.saved-sheet-heading p { font-size: 13px; color: #64748b; margin-top: 4px; word-break: keep-all; }
+.saved-sheet-heading > strong { font-size: 24px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.saved-sheet-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 8px 16px; background: #fff8eb; font-size: 13px; }
+.saved-phase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; }
+.saved-phase { min-width: 0; padding: 12px 16px; }
+.saved-phase h3 { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; padding-bottom: 8px; border-bottom: 2px solid #c9bca8; }
+.saved-phase h3 span { font-size: 13px; font-variant-numeric: tabular-nums; }
+.saved-phase li { border-bottom: 1px solid #ebe7e0; }
+.saved-phase label { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.saved-phase input { width: 20px; height: 20px; accent-color: #974d0c; flex-shrink: 0; }
+.saved-phase label > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.saved-phase input:checked + span { text-decoration: line-through; color: #64748b; }
+.saved-phase strong { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.saved-phase small { font-size: 12px; margin-left: 5px; font-weight: 400; }
+.saved-source { border-top: 1px solid #e2ded6; padding: 0 16px; }
+.saved-source summary { padding: 12px 0; cursor: pointer; font-size: 13px; color: #64748b; }
+.saved-source table { margin-bottom: 16px; }
+.saved-instructions ol { display: grid; gap: 8px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.saved-instructions li { display: flex; gap: 12px; padding: 8px 0; font-size: 14px; }
+.saved-instructions li > b { color: #974d0c; }
+@media print { .saved-phase input, .conversion-save-hint { display: none; } .saved-phase { break-inside: avoid; } }

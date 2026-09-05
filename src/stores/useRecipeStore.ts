@@ -229,9 +229,14 @@ export const useRecipeStore = create<RecipeStore>()(
         storage: quotaSafeStorage,
         partialize: (state) => ({
           recipes: state.recipes,
+          selectedRecipeId: state.currentRecipe?.id,
           filters: state.filters,
           sortBy: state.sortBy,
           draftRecipe: state.draftRecipe  // 작성 중인 레시피 자동 저장
+        }),
+        merge: (persisted: any, current) => ({
+          ...current, ...persisted,
+          currentRecipe: persisted?.recipes?.find((recipe: Recipe) => recipe.id === persisted.selectedRecipeId) || null,
         }),
         migrate: (persistedState: any, version: number) => {
           let state = { ...persistedState }

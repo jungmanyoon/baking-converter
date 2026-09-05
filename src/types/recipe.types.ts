@@ -128,6 +128,15 @@ export interface PanDimensions {
 
 // ===== 레시피 관련 타입 =====
 export interface Recipe {
+  /** 변환본의 재료는 결과 중량이며, 입력과 설정은 별도 보존한다. */
+  conversion?: {
+    version: 1;
+    sourceRecipeId?: string;
+    sourceRecipeName: string;
+    multiplier: number;
+    methodLabel: string;
+    workspace: Omit<Recipe, 'conversion'>;
+  };
   id: string;
   name: string;
   nameKo?: string; // 한글명

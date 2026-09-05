@@ -1,17 +1,17 @@
 {
   "workspace": {
-  "deleteConfirm": "Delete “{{name}}”?",
-  "eyebrow": "My baking workspace",
-  "navigation": "Conversion workflow",
-  "ingredients": "Ingredients",
-  "settings": "Convert",
-  "result": "Weigh",
-  "process": "Steps",
-  "moreActions": "Copy · Export · Tools",
-  "skipContent": "Skip to content",
-  "settingsCategory": "Settings category",
-  "saveFailed": "Could not save in this browser. Export your recipes before closing this window."
-},
+    "deleteConfirm": "Delete “{{name}}”?",
+    "eyebrow": "My baking workspace",
+    "navigation": "Conversion workflow",
+    "ingredients": "Ingredients",
+    "settings": "Convert",
+    "result": "Weigh",
+    "process": "Steps",
+    "moreActions": "Copy · Export · Tools",
+    "skipContent": "Skip to content",
+    "settingsCategory": "Settings category",
+    "saveFailed": "Could not save in this browser. Export your recipes before closing this window."
+  },
   "app": {
     "name": "Baking Recipe Converter",
     "tagline": "Baker's Percentage Based Recipe Converter"
@@ -2715,5 +2715,28 @@
       "guide": "User Guide",
       "contact": "Contact Us"
     }
+  },
+  "savedRecipe": {
+    "save": "Save conversion",
+    "saved": "Conversion saved. These are your final weighing amounts.",
+    "saveHint": "Input → Convert → Save conversion · Your source recipe stays unchanged.",
+    "editHint": "Editing saved conversion settings. Saving updates only this conversion.",
+    "invalidResult": "Enter ingredients and valid amounts before saving.",
+    "scaling": "Scale",
+    "original": "Original",
+    "converted": "Converted",
+    "ready": "Saved weighing sheet",
+    "resultHint": "These are the final amounts after conversion.",
+    "editConversion": "Edit conversion",
+    "source": "Source: {{name}}",
+    "inputSnapshot": "View conversion input",
+    "multiplier": "Scale factor",
+    "process": "Instructions",
+    "noSteps": "No instructions yet. Add them in the editor.",
+    "weight": "Total weight",
+    "weighed": "{{name}} weighed",
+    "bake": "Baking",
+    "minute": "min",
+    "sourceOpen": "Open original"
   }
 }

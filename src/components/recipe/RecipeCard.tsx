@@ -19,7 +19,10 @@ interface RecipeCardProps {
 }
 
 // 제법 키 매핑 (i18n 키로 변환)
-const METHOD_KEYS: Record<BreadMethod, string> = {
+const METHOD_KEYS: Record<string, string> = {
+  levain: 'method.levain',
+  coldFerment: 'method.coldFerment',
+  retard: 'method.retard',
   straight: 'method.straight',
   sponge: 'method.sponge',
   poolish: 'method.poolish',
@@ -134,6 +137,8 @@ const RecipeCard = memo<RecipeCardProps>(({
     onSelect()
   }, [onSelect])
   
+  const status = <p className="text-xs text-brand-700 mt-1 mb-2">{t(recipe.conversion ? 'savedRecipe.converted' : 'savedRecipe.original')}{recipe.conversion && ` · ×${Number(recipe.conversion.multiplier.toFixed(3))} · ${recipe.conversion.methodLabel} · ${Number((recipe.totalWeight || 0).toFixed(1))} g`}</p>
+
   // Compact 뷰 렌더링
   if (compact) {
     return (
@@ -189,6 +194,7 @@ const RecipeCard = memo<RecipeCardProps>(({
             )}
           </div>
 
+          {status}
           <div className="flex justify-between items-center text-xs text-ink-subtle">
             {showMethod ? <span>{methodName}</span> : <span />}
             <span>{t('recipeList.ingredientCount', { count: ingredientCount })}</span>
@@ -219,6 +225,7 @@ const RecipeCard = memo<RecipeCardProps>(({
               {getLocalizedRecipeName(recipe)}
             </button>
           </h3>
+          {status}
           {sourceInfo && (
             <div className="relative z-10 flex items-center gap-1 mt-1 text-ink-subtle">
               <sourceInfo.Icon size={12} className={sourceInfo.color} />

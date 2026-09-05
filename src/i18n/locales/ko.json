@@ -1,17 +1,17 @@
 {
   "workspace": {
-  "deleteConfirm": "“{{name}}” 레시피를 삭제할까요?",
-  "eyebrow": "나의 베이킹 작업실",
-  "navigation": "변환 작업 순서",
-  "ingredients": "재료 입력",
-  "settings": "변환 설정",
-  "result": "계량 결과",
-  "process": "공정·메모",
-  "moreActions": "복사 · 내보내기 · 도구",
-  "skipContent": "본문으로 건너뛰기",
-  "settingsCategory": "설정 항목",
-  "saveFailed": "브라우저에 저장하지 못했습니다. 창을 닫기 전에 레시피를 내보내 백업해 주세요."
-},
+    "deleteConfirm": "“{{name}}” 레시피를 삭제할까요?",
+    "eyebrow": "나의 베이킹 작업실",
+    "navigation": "변환 작업 순서",
+    "ingredients": "재료 입력",
+    "settings": "변환 설정",
+    "result": "계량 결과",
+    "process": "공정·메모",
+    "moreActions": "복사 · 내보내기 · 도구",
+    "skipContent": "본문으로 건너뛰기",
+    "settingsCategory": "설정 항목",
+    "saveFailed": "브라우저에 저장하지 못했습니다. 창을 닫기 전에 레시피를 내보내 백업해 주세요."
+  },
   "app": {
     "name": "제과제빵 레시피 변환기",
     "tagline": "베이커스 퍼센트 기반 레시피 변환"
@@ -2715,5 +2715,28 @@
       "guide": "사용 가이드",
       "contact": "문의하기"
     }
+  },
+  "savedRecipe": {
+    "save": "변환본 저장",
+    "saved": "변환본을 저장했습니다. 지금 보이는 계량표로 조리하세요.",
+    "saveHint": "입력 → 변환 → 변환본 저장 · 원본은 그대로 보관됩니다.",
+    "editHint": "저장한 변환 설정을 수정 중입니다. 저장하면 이 변환본만 갱신됩니다.",
+    "invalidResult": "재료명과 올바른 중량을 입력한 뒤 저장해 주세요.",
+    "scaling": "배수 변환",
+    "original": "원본",
+    "converted": "변환본",
+    "ready": "저장된 계량표",
+    "resultHint": "아래 중량은 변환이 적용된 최종 계량량입니다.",
+    "editConversion": "변환 설정 수정",
+    "source": "기준 원본: {{name}}",
+    "inputSnapshot": "변환에 사용한 입력 보기",
+    "multiplier": "적용 배수",
+    "process": "만드는 순서",
+    "noSteps": "등록된 공정이 없습니다. 편집에서 만드는 순서를 추가하세요.",
+    "weight": "총 계량량",
+    "weighed": "{{name}} 계량 완료",
+    "bake": "굽기",
+    "minute": "분",
+    "sourceOpen": "원본 열기"
   }
 }

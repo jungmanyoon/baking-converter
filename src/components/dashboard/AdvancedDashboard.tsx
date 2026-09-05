@@ -11,6 +11,8 @@
  * - 레시피 테이블 컴팩트화
  */
 
+import { captureConversionGroups, recipeForConversion, conversionName } from '@/utils/recipeConversion';
+import { useAppStore } from '@/stores/useAppStore';
 import { syncRecipePhases } from '@/utils/recipeEditing';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +39,6 @@ import {
 } from 'lucide-react';
 import TimerManager from '@/components/pwa/TimerManager.jsx';
 import BakingMode from '@/components/pwa/BakingMode';
-import ConfirmModal from '@/components/common/ConfirmModal';
 import { SourceType } from '@/types/recipe.types';
 
 // ============================================
@@ -511,6 +512,7 @@ const AdvancedDashboard: React.FC = () => {
   // ============================================
   useEffect(() => {
     if (currentRecipe) {
+      const loadedRecipe = recipeForConversion(currentRecipe);
       // ID + updatedAt으로 고유 키 생성 (저장 후 변경사항 반영)
       const recipeKey = `${currentRecipe.id}-${currentRecipe.updatedAt?.toString() || ''}`;
 
@@ -520,18 +522,18 @@ const AdvancedDashboard: React.FC = () => {
       lastLoadedRecipeKey.current = recipeKey;
 
       // 레시피 이름 로드
-      setProductName(currentRecipe.name || t('advDashboard.defaultRecipeName'));
+      setProductName(loadedRecipe.name || t('advDashboard.defaultRecipeName'));
 
       // 제품 타입 로드 (기본값: bread)
-      setProductType(currentRecipe.productType || 'bread');
+      setProductType(loadedRecipe.productType || 'bread');
 
       // 출처 정보 로드
-      if (currentRecipe.source) {
+      if (loadedRecipe.source) {
         setSource({
-          name: currentRecipe.source.name || '',
-          type: currentRecipe.source.type || 'personal',
-          url: currentRecipe.source.url || '',
-          author: currentRecipe.source.author || ''
+          name: loadedRecipe.source.name || '',
+          type: loadedRecipe.source.type || 'personal',
+          url: loadedRecipe.source.url || '',
+          author: loadedRecipe.source.author || ''
         });
       } else {
         setSource({ name: '', type: 'personal', url: '', author: '' });
@@ -541,9 +543,9 @@ const AdvancedDashboard: React.FC = () => {
       const loadedIngredients: IngredientEntry[] = [];
 
       // phases가 있는 레시피 (탕종, 사전반죽 등)
-      if (currentRecipe.phases && Array.isArray(currentRecipe.phases) && currentRecipe.phases.length > 0) {
+      if (loadedRecipe.phases && Array.isArray(loadedRecipe.phases) && loadedRecipe.phases.length > 0) {
         let globalOrder = 1;
-        currentRecipe.phases.forEach((phase: any) => {
+        loadedRecipe.phases.forEach((phase: any) => {
           if (phase.ingredients && Array.isArray(phase.ingredients)) {
             phase.ingredients.forEach((ing: any, ingIdx: number) => {
               const cat = ing.category || 'other';
@@ -580,8 +582,8 @@ const AdvancedDashboard: React.FC = () => {
         });
       }
       // phases가 없는 레시피 (일반 레시피)
-      else if (currentRecipe.ingredients && Array.isArray(currentRecipe.ingredients)) {
-        currentRecipe.ingredients.forEach((ing: any, idx: number) => {
+      else if (loadedRecipe.ingredients && Array.isArray(loadedRecipe.ingredients)) {
+        loadedRecipe.ingredients.forEach((ing: any, idx: number) => {
           const cat = ing.category || ing.type || 'other';
           let dashboardCategory: 'flour' | 'liquid' | 'wetOther' | 'other' = 'other';
           let subCat = '기타';
@@ -626,8 +628,8 @@ const AdvancedDashboard: React.FC = () => {
       setExampleLoaded(false);
 
       // 공정 로드
-      if (currentRecipe.steps && Array.isArray(currentRecipe.steps)) {
-        const loadedProcesses: ProcessStep[] = currentRecipe.steps.map((step: any, idx: number) => ({
+      if (loadedRecipe.steps && Array.isArray(loadedRecipe.steps)) {
+        const loadedProcesses: ProcessStep[] = loadedRecipe.steps.map((step: any, idx: number) => ({
           id: step.id || `${Date.now()}-${idx}`,
           order: step.order || idx + 1,
           description: step.instruction || step.action || step.description || '',
@@ -641,8 +643,8 @@ const AdvancedDashboard: React.FC = () => {
       }
 
       // 오븐 설정 로드
-      if (currentRecipe.ovenSettings) {
-        const ovenData = currentRecipe.ovenSettings as any;
+      if (loadedRecipe.ovenSettings) {
+        const ovenData = loadedRecipe.ovenSettings as any;
         const secondBakeData = ovenData.secondBake;
         setOven({
           type: ovenData.mode === 'deck' ? 'deck' :
@@ -662,8 +664,8 @@ const AdvancedDashboard: React.FC = () => {
       }
 
       // 제법 설정 로드
-      if (currentRecipe.method) {
-        const methodData = currentRecipe.method as any;
+      if (loadedRecipe.method) {
+        const methodData = loadedRecipe.method as any;
         let methodType = typeof methodData === 'string' ? methodData : methodData.method || methodData.type || 'straight';
         // sourdough는 levain으로 매핑 (동일한 개념)
         if (methodType === 'sourdough') methodType = 'levain';
@@ -678,16 +680,16 @@ const AdvancedDashboard: React.FC = () => {
           type: methodType as 'straight' | 'sponge' | 'poolish' | 'biga' | 'tangzhong' | 'autolyse' | 'levain' | 'coldFerment' | 'retard',
           flourRatio: methodData.prefermentRatio || 0,
           waterRatio: methodData.waterRatio || 0,
-          yeastAdjustment: methodConfig?.yeastAdjustment ?? defaultYeast.yeastAdjustment,
-          prefermentYeastRatio: methodConfig?.prefermentYeastRatio ?? defaultYeast.prefermentYeastRatio,
+          yeastAdjustment: methodData.yeastAdjustment ?? methodConfig?.yeastAdjustment ?? defaultYeast.yeastAdjustment,
+          prefermentYeastRatio: methodData.prefermentYeastRatio ?? methodConfig?.prefermentYeastRatio ?? defaultYeast.prefermentYeastRatio,
         });
         // 중종법, 폴리쉬법 등이면 발효종 사용 활성화
-        setUsePreferment(methodType !== 'straight');
+        setUsePreferment(methodData.usePreferment ?? methodType !== 'straight');
       }
 
       // 팬 설정 로드
-      if (currentRecipe.panConfig) {
-        const panData = currentRecipe.panConfig as any;
+      if (loadedRecipe.panConfig) {
+        const panData = loadedRecipe.panConfig as any;
         // 카테고리 유효성 검증 - PAN_DATA에 없는 카테고리는 기본값으로 fallback
         const rawCategory = panData.name || panData.category || defaultCategory;
         const panCategory = getValidPanCategory(rawCategory);
@@ -798,13 +800,13 @@ const AdvancedDashboard: React.FC = () => {
       }
 
       // 비용적 설정 로드
-      if (currentRecipe.specificVolume) {
-        const svData = currentRecipe.specificVolume;
+      if (loadedRecipe.specificVolume) {
+        const svData = loadedRecipe.specificVolume;
         if (svData.original) setOriginalProduct(svData.original);
         if (svData.converted) setConvertedProduct(svData.converted);
-      } else if (currentRecipe.tags && Array.isArray(currentRecipe.tags)) {
+      } else if (loadedRecipe.tags && Array.isArray(loadedRecipe.tags)) {
         // 이전 형식: tags에서 비용적 추출 시도
-        const svFromTags = currentRecipe.tags.find((t: string) =>
+        const svFromTags = loadedRecipe.tags.find((t: string) =>
           SPECIFIC_VOLUMES[t] !== undefined
         );
         if (svFromTags) {
@@ -814,8 +816,8 @@ const AdvancedDashboard: React.FC = () => {
       }
 
       // 배수 설정 로드 + 유효성 검증 (음수/0 방지)
-      if (currentRecipe.multiplierConfig) {
-        const mcData = currentRecipe.multiplierConfig;
+      if (loadedRecipe.multiplierConfig) {
+        const mcData = loadedRecipe.multiplierConfig;
         if (typeof mcData.multiplier === 'number') {
           // 배수는 최소 0.01 이상 보장
           setMultiplier(Math.max(0.01, Math.abs(mcData.multiplier) || 1));
@@ -824,15 +826,15 @@ const AdvancedDashboard: React.FC = () => {
       }
 
       // 메모 로드
-      if (currentRecipe.notes) {
-        setMemo(currentRecipe.notes);
+      if (loadedRecipe.notes) {
+        setMemo(loadedRecipe.notes);
       }
 
       // 수율 예측 공정 선택 상태 로드
-      if (currentRecipe.yieldStageSelection) {
+      if (loadedRecipe.yieldStageSelection) {
         setYieldStageSelection({
           ...DEFAULT_STAGE_SELECTION,
-          ...currentRecipe.yieldStageSelection
+          ...loadedRecipe.yieldStageSelection
         });
       } else {
         // 저장된 상태가 없으면 기본값으로 리셋
@@ -1134,19 +1136,12 @@ const AdvancedDashboard: React.FC = () => {
     }
   }, [productType]);
 
-  const convertedTotal = useMemo(() => Math.round(totalWeight * effectiveMultiplier), [totalWeight, effectiveMultiplier]);
 
   // 변환표 베이커스 % 파생용 밀가루 총량 (배수는 균일 적용이라 원본 비율과 동일한 값이 나옴)
   const convertedFlourTotal = useMemo(() => flourTotal * effectiveMultiplier, [flourTotal, effectiveMultiplier]);
 
-  // 표시용 반죽량 포맷: 10g 이상은 정수(가정용 저울 단위), 10g 미만만 소수 0.1g까지
-  const formatWeight = (g: number) => (Math.abs(g) >= 10 ? Math.round(g) : Math.round(g * 10) / 10);
-
-  // 팬 충전율 계산: 변환 반죽량 ÷ 팬 권장량 × 100 (100%≈적정, >110%=과충전 주의)
-  const panFillRate = useMemo(() => {
-    if (panTotalWeight === 0) return 0;
-    return Math.round((convertedTotal / panTotalWeight) * 1000) / 10;
-  }, [panTotalWeight, convertedTotal]);
+  // 계량표, 저장본, 복사본이 모두 같은 0.1g 정밀도를 사용한다.
+  const formatWeight = (g: number) => Math.round(g * 10) / 10;
 
   // 변환된 재료
   const convertedIngredients = useMemo(() =>
@@ -1315,16 +1310,6 @@ const AdvancedDashboard: React.FC = () => {
     return result;
   }, [ingredients, method, usePreferment, effectiveMultiplier, convertedIngredients]);
 
-  const prefermentTotal = useMemo(() =>
-    prefermentIngredients.reduce((sum, i) => sum + (i.convertedAmount || 0), 0),
-    [prefermentIngredients]
-  );
-
-  const mainDoughTotal = useMemo(() =>
-    mainDoughIngredients.reduce((sum, i) => sum + (i.convertedAmount || 0), 0),
-    [mainDoughIngredients]
-  );
-
   // 원본 레시피의 제법 타입 감지 (phase 속성 기반)
   const originalMethodType = useMemo(() => {
     const prefermentPhases = ['tangzhong', 'poolish', 'biga', 'sponge', 'levain', 'autolyse', 'preferment'];
@@ -1477,6 +1462,11 @@ const AdvancedDashboard: React.FC = () => {
 
     return result;
   }, [convertedIngredients, prefermentIngredients, mainDoughIngredients, usePreferment, method.type, isSameMethod, originalMethodType, hasMultipleIngredientPhases]);
+
+  const convertedTotal = useMemo(() => Math.round(convertedIngredientsByPhase.reduce((sum, group) =>
+    sum + group.items.reduce((subtotal, ingredient) => subtotal + ingredient.convertedAmount, 0), 0) * 10) / 10,
+    [convertedIngredientsByPhase]);
+  const panFillRate = panTotalWeight > 0 ? Math.round(convertedTotal / panTotalWeight * 1000) / 10 : 0;
 
   // 변환 재료에 단계가 2개 이상인지
   const convertedHasMultiplePhases = convertedIngredientsByPhase.length > 1;
@@ -1669,12 +1659,12 @@ const AdvancedDashboard: React.FC = () => {
 
   // 레시피 저장 (실제 저장 로직)
   // options.asCopy: '사본으로 저장' - currentRecipe 폴백을 끊어 강제로 신규 생성(원본 보존)
-  const saveRecipeData = useCallback((overwriteId?: string, options?: { asCopy?: boolean }) => {
-    // 저장할 재료 데이터 - 원래 레시피 그대로 저장 (변환값 아님!)
+  const createConvertedRecipe = useCallback((options?: { asCopy?: boolean }) => {
+    // 변환을 다시 편집하기 위한 입력 사본이다. 저장 레시피 본문은 아래에서 실제 결과로 교체한다.
     const ingredientsToSave = ingredients.map((ing, idx) => ({
       id: ing.id || `ing-${Date.now()}-${idx}`,
       name: ing.name,
-      amount: ing.amount,  // 원래 레시피 양 저장 (convertedAmount 아님!)
+      amount: ing.amount,
       percentage: ing.ratio,  // 베이커스 퍼센트 저장
       unit: 'g',
       category: ing.category === 'flour' ? 'flour' :
@@ -1717,19 +1707,22 @@ const AdvancedDashboard: React.FC = () => {
       name: productName || t('advDashboard.defaultRecipeName'),
       nameKo: productName,
       productType: productType,  // 🆕 제품 타입 (제빵/제과)
-      category: 'bread' as const,
+      category: currentRecipe?.category || productType,
       difficulty: 'intermediate' as const,
       servings: pans.reduce((s, p) => s + p.quantity, 0),
       prepTime: 30,
       totalTime: 60 + oven.firstBake.time + oven.secondBake.time,
       ingredients: ingredientsToSave,
-      phases: syncRecipePhases(currentRecipe?.phases, ingredientsToSave),
+      phases: syncRecipePhases(currentRecipe ? recipeForConversion(currentRecipe).phases : undefined, ingredientsToSave),
       steps: stepsToSave,
       ovenSettings: ovenSettingsToSave,
       method: {
         method: method.type,
         prefermentRatio: method.flourRatio,
-        waterRatio: method.waterRatio,  // 수분 비율 저장 추가
+        waterRatio: method.waterRatio,
+        yeastAdjustment: method.yeastAdjustment,
+        prefermentYeastRatio: method.prefermentYeastRatio,
+        usePreferment,
       },
       panConfig: {
         type: pans[0]?.type || defaultPanType,
@@ -1764,95 +1757,59 @@ const AdvancedDashboard: React.FC = () => {
       updatedAt: new Date(),
     };
 
-    // 덮어쓰기 또는 현재 레시피 업데이트
-    // asCopy 면 currentRecipe 폴백을 끊어 강제 신규(원본 덮어쓰기 방지)
-    const targetId = options?.asCopy ? undefined : (overwriteId || currentRecipe?.id);
-    if (targetId) {
-      updateRecipe(targetId, recipeData as any);
-      addToast(useRecipeStorageStatus.getState().failed
-        ? { type: 'error', message: t('workspace.saveFailed'), duration: 0 }
-        : { type: 'success', message: t('advDashboard.recipeUpdated', { name: productName }) });
-    } else {
-      // 사본으로 저장: 이름 충돌(모달 재발) 방지를 위해 접미사 부여
-      const copyName = options?.asCopy
-        ? `${recipeData.name} ${t('advDashboard.copySuffix')}`.trim()
-        : recipeData.name;
-      const newRecipe = {
-        ...recipeData,
-        name: copyName,
-        nameKo: options?.asCopy && recipeData.nameKo ? `${recipeData.nameKo} ${t('advDashboard.copySuffix')}`.trim() : recipeData.nameKo,
-        id: `recipe-${Date.now()}`,
-        createdAt: new Date(),
-      };
-      addRecipe(newRecipe as any);
-      addToast(useRecipeStorageStatus.getState().failed
-        ? { type: 'error', message: t('workspace.saveFailed'), duration: 0 }
-        : { type: 'success', message: t('advDashboard.recipeSaved', { name: copyName }) });
+    let result;
+    try {
+      result = captureConversionGroups(convertedIngredientsByPhase, ingredientsToSave);
+    } catch {
+      addToast({ type: 'error', message: t('savedRecipe.invalidResult') });
+      return;
     }
-  }, [productName, productType, source, pans, oven, ingredients, processes, memo, convertedProduct, originalProduct, method, originalPan, multiplier, isPanLinked, yieldStageSelection, currentRecipe, defaultPanType, defaultCategory, addRecipe, updateRecipe, addToast, t]);
+    // 원본 ID는 저장 대상으로 사용하지 않는다. 변환본만 갱신하거나 별도 사본을 만든다.
+    const targetId = !options?.asCopy && currentRecipe?.conversion ? currentRecipe.id : undefined;
+    const label = productType === 'pastry' && !usePreferment ? t('savedRecipe.scaling') : METHOD_LABELS[method.type];
+    const baseName = conversionName(recipeData.name, effectiveMultiplier, label);
+    let name = baseName;
+    let suffix = 2;
+    while (recipes.some(recipe => recipe.id !== targetId && recipe.name === name)) name = `${baseName} (${suffix++})`;
+    const { conversion: ignoredConversion, ...base } = currentRecipe || {};
+    const savedRecipe = {
+      ...base, ...recipeData, ...result, name, nameKo: name,
+      id: targetId || `recipe-${crypto.randomUUID()}`,
+      createdAt: targetId ? currentRecipe!.createdAt : new Date(),
+      // 결과 재료에 배수를 다시 적용하지 않는다. 설정 복원은 conversion.workspace에서 한다.
+      multiplierConfig: { multiplier: 1, isPanLinked: false },
+      conversion: {
+        version: 1 as const,
+        sourceRecipeId: currentRecipe?.conversion ? currentRecipe.conversion.sourceRecipeId : currentRecipe?.id,
+        sourceRecipeName: currentRecipe?.conversion?.sourceRecipeName || recipeData.name,
+        multiplier: effectiveMultiplier, methodLabel: label,
+        workspace: { ...base, ...recipeData },
+      },
+    };
+    return savedRecipe;
+  }, [productName, productType, source, pans, oven, ingredients, processes, memo, convertedProduct, originalProduct, method, originalPan, multiplier, isPanLinked, yieldStageSelection, currentRecipe, defaultPanType, defaultCategory, addToast, t, convertedIngredientsByPhase, effectiveMultiplier, usePreferment, recipes]);
 
-  // 레시피 저장 (중복 이름 확인)
-  const handleSaveRecipe = useCallback(() => {
-    const trimmedName = (productName || t('advDashboard.defaultRecipeName')).trim();
-
-    // 동일한 이름의 기존 레시피 찾기 (현재 편집 중인 레시피 제외)
-    const existingRecipe = recipes.find(
-      r => r.name?.trim() === trimmedName && r.id !== currentRecipe?.id
-    );
-
-    if (existingRecipe) {
-      // 중복 이름 발견 - ConfirmModal 로 3지선다(덮어쓰기/사본으로/취소) 제공
-      setDuplicateModal({ open: true, existingId: existingRecipe.id, name: trimmedName });
-    } else {
-      // 중복 없음 - 바로 저장
-      saveRecipeData();
+  const saveRecipeData = useCallback((options?: { asCopy?: boolean }) => {
+    const savedRecipe = createConvertedRecipe(options);
+    if (!savedRecipe) return;
+    if (recipes.some(recipe => recipe.id === savedRecipe.id)) updateRecipe(savedRecipe.id, savedRecipe as any);
+    else addRecipe(savedRecipe as any);
+    if (useRecipeStorageStatus.getState().failed) {
+      addToast({ type: 'error', message: t('workspace.saveFailed'), duration: 0 });
+      return;
     }
-  }, [productName, recipes, currentRecipe?.id, saveRecipeData, t]);
+    addToast({ type: 'success', message: t('savedRecipe.saved') });
+    useAppStore.getState().setActiveTab('view');
+    window.scrollTo({ top: 0 });
+  }, [createConvertedRecipe, recipes, updateRecipe, addRecipe, addToast, t]);
+
+  const handleSaveRecipe = useCallback(() => saveRecipeData(), [saveRecipeData]);
 
   // 레시피 내보내기 (JSON)
   const handleExportRecipe = useCallback(() => {
-    const exportData = {
-      name: productName,
-      source: source.name ? source : undefined,
-      exportedAt: new Date().toISOString(),
-      version: '1.0',
-      settings: {
-        multiplier: effectiveMultiplier,
-        originalTotal: totalWeight,
-        convertedTotal,
-        panSettings: {
-          original: originalPan,
-          converted: pans,
-        },
-        oven,
-        method,
-        specificVolume: {
-          original: originalProduct,
-          converted: convertedProduct,
-        },
-      },
-      originalIngredients: ingredients.map(ing => ({
-        name: ing.name,
-        category: ing.category,
-        amount: ing.amount,
-        ratio: ing.ratio,
-      })),
-      convertedIngredients: (usePreferment ? mainDoughIngredients : convertedIngredients).map(ing => ({
-        name: ing.name,
-        category: ing.category,
-        amount: ing.convertedAmount,
-      })),
-      prefermentIngredients: usePreferment ? prefermentIngredients.map(ing => ({
-        name: ing.name,
-        amount: ing.convertedAmount,
-      })) : [],
-      processes: processes.map(p => ({
-        description: p.description,
-        time: p.time,
-        temp: p.temp,
-      })),
-      memo,
-    };
+    const exportedRecipe = createConvertedRecipe({ asCopy: true });
+    if (!exportedRecipe) return;
+    const exportData = [exportedRecipe];
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1865,24 +1822,10 @@ const AdvancedDashboard: React.FC = () => {
     URL.revokeObjectURL(url);
 
     addToast({ type: 'success', message: t('advDashboard.recipeExported') });
-  }, [productName, source, effectiveMultiplier, totalWeight, convertedTotal, originalPan, pans, oven, method, originalProduct, convertedProduct, ingredients, usePreferment, mainDoughIngredients, convertedIngredients, prefermentIngredients, processes, memo, addToast]);
+  }, [createConvertedRecipe, productName, addToast, t]);
 
   // 텍스트로 복사 (일반 사용자용)
   const handleCopyAsText = useCallback(async () => {
-    const categoryNames: Record<string, string> = {
-      flour: t('ingredientCategory.flour'),
-      liquid: t('ingredientCategory.liquid'),
-      yeast: t('ingredientCategory.yeast'),
-      fat: t('ingredientCategory.fat'),
-      sugar: t('ingredientCategory.sugar'),
-      dairy: t('ingredientCategory.dairy'),
-      egg: t('ingredientCategory.egg'),
-      salt: t('ingredientCategory.salt'),
-      other: t('ingredientCategory.other')
-    };
-
-    const ingredientList = (usePreferment ? mainDoughIngredients : convertedIngredients);
-
     let text = `🍞 ${productName}\n`;
     text += `${'─'.repeat(30)}\n\n`;
 
@@ -1893,28 +1836,13 @@ const AdvancedDashboard: React.FC = () => {
     text += `• ${t('advDashboard.pan')}: ${pans.map(p => `${p.type} ${p.quantity}`).join(', ')}\n`;
     text += `• ${t('advDashboard.method')}: ${METHOD_LABELS[method.type]}\n\n`;
 
-    // 사전반죽 (있는 경우)
-    if (usePreferment && prefermentIngredients.length > 0) {
-      text += `🥣 ${t('advDashboard.prefermentIngredients')} (${METHOD_LABELS[method.type]})\n`;
-      prefermentIngredients.forEach(ing => {
-        text += `• ${translateIngredient(ing.name)}: ${ing.convertedAmount}g\n`;
-      });
-      text += `\n`;
-    }
-
-    // 본반죽 재료
-    text += usePreferment ? `🍞 ${t('advDashboard.mainDoughIngredients')}\n` : `🍞 ${t('advDashboard.ingredients')}\n`;
-    const categories = [...new Set(ingredientList.map(i => i.category))];
-    categories.forEach(cat => {
-      const items = ingredientList.filter(i => i.category === cat);
-      if (items.length > 0) {
-        text += `[${categoryNames[cat] || cat}]\n`;
-        items.forEach(ing => {
-          text += `• ${translateIngredient(ing.name)}: ${ing.convertedAmount}g\n`;
-        });
-      }
+    // 화면에 표시한 단계별 계량량을 그대로 복사한다.
+    convertedIngredientsByPhase.forEach(({ phase, items }) => {
+      const meta = PHASE_META[phase] || PHASE_META.other;
+      text += `${t(meta.labelKey)}\n`;
+      items.forEach(ing => { text += `• ${translateIngredient(ing.name)}: ${ing.convertedAmount}g\n`; });
+      text += '\n';
     });
-    text += `\n`;
 
     // 오븐 설정
     text += `🔥 ${t('advDashboard.ovenSettings')}\n`;
@@ -1962,7 +1890,7 @@ const AdvancedDashboard: React.FC = () => {
       URL.revokeObjectURL(url);
       addToast({ type: 'success', message: t('advDashboard.recipeSavedAsText') });
     }
-  }, [productName, effectiveMultiplier, totalWeight, convertedTotal, pans, method, usePreferment, prefermentIngredients, mainDoughIngredients, convertedIngredients, oven, processes, memo, addToast, translateIngredient, translateProcessStep, t]);
+  }, [productName, effectiveMultiplier, totalWeight, convertedTotal, pans, method, usePreferment, prefermentIngredients, mainDoughIngredients, convertedIngredients, oven, processes, memo, addToast, convertedIngredientsByPhase, translateIngredient, translateProcessStep, t]);
 
   const updatePan = useCallback((id: string, field: keyof PanEntry, value: any) => {
     setPans(prev => prev.map(p => {
@@ -2020,7 +1948,6 @@ const AdvancedDashboard: React.FC = () => {
   // 일괄 입력 모달 상태
   const [isBulkInputOpen, setIsBulkInputOpen] = useState(false);
   // H5: 중복 이름 저장 확인 모달 (덮어쓰기/사본으로/취소)
-  const [duplicateModal, setDuplicateModal] = useState<{ open: boolean; existingId: string; name: string }>({ open: false, existingId: '', name: '' });
   // 실행 모드(굽기) 상태 - 레시피에 저장하지 않는 ephemeral UI 상태
   const [isTimerOpen, setIsTimerOpen] = useState(false);            // C3 타이머 모달
   const [isBakingMode, setIsBakingMode] = useState(false);          // H1 전용 베이킹 모드(전체화면 단계뷰)
@@ -2161,9 +2088,10 @@ const AdvancedDashboard: React.FC = () => {
           <h1 className="text-xl font-bold">{t('nav.converter')}</h1>
         </div>
         <button onClick={handleSaveRecipe} className="btn-primary inline-flex items-center gap-2">
-          <Save size={18} />{t('advDashboard.save')}
+          <Save size={18} />{t('savedRecipe.save')}
         </button>
       </div>
+      <p className="conversion-save-hint">{t(currentRecipe?.conversion ? 'savedRecipe.editHint' : 'savedRecipe.saveHint')}</p>
       <nav className="workspace-tabs print-hide" aria-label={t('workspace.navigation')}>
         {(['ingredients', 'settings', 'result', 'process'] as const).map((section, index) => (
           <button key={section} aria-pressed={mobileSection === section}
@@ -2344,7 +2272,8 @@ const AdvancedDashboard: React.FC = () => {
             )}
           </div>
           <div className="workspace-tools print-hide">
-          <button onClick={handleSaveRecipe} className="btn-primary"><Save size={18} />{t('advDashboard.save')}</button>
+          <button onClick={handleSaveRecipe} className="btn-primary"><Save size={18} />{t('savedRecipe.save')}</button>
+          {currentRecipe?.conversion && <button className="btn-secondary" onClick={() => saveRecipeData({ asCopy: true })}>{t('advDashboard.saveAsCopy')}</button>}
           <details className="workspace-actions print-hide"><summary>{t('workspace.moreActions')}</summary><div className="flex flex-wrap gap-2 py-2">
             {/* 초기화: 부가 기능 — 전문가 모드에서만 노출 */}
             {isExpertMode && (
@@ -2361,7 +2290,7 @@ const AdvancedDashboard: React.FC = () => {
               className="flex items-center gap-1 px-3 py-1.5 min-h-[44px] lg:min-h-0 text-xs bg-brand-500 text-white rounded hover:bg-brand-600"
               title={t('advDashboard.saveRecipe')}
             >
-              <Save className="w-4 h-4" />{t('advDashboard.save')}
+              <Save className="w-4 h-4" />{t('savedRecipe.save')}
             </button>
             <button
               onClick={handleCopyAsText}
@@ -3125,7 +3054,7 @@ const AdvancedDashboard: React.FC = () => {
                   </table>
                 </div>
                 <div className="bg-info-50 border-t border-info-200 px-2 py-1 text-xs flex-shrink-0">
-                  <span className="text-info-700">{t('advDashboard.total')}: <b className="tnum">{formatWeight(prefermentTotal + mainDoughTotal)}g</b></span>
+                  <span className="text-info-700">{t('advDashboard.total')}: <b className="tnum">{convertedTotal}g</b></span>
                 </div>
               </div>
               )}
@@ -3425,30 +3354,7 @@ const AdvancedDashboard: React.FC = () => {
         onToggleDone={toggleProcessDone}
       />
 
-      {/* H5: 중복 이름 저장 확인 (덮어쓰기 / 사본으로 / 취소) */}
-      <ConfirmModal
-        isOpen={duplicateModal.open}
-        onClose={() => setDuplicateModal(m => ({ ...m, open: false }))}
-        title={t('advDashboard.duplicateRecipeTitle', { defaultValue: '같은 이름의 레시피가 있습니다' })}
-        message={t('advDashboard.duplicateRecipeBody', { name: duplicateModal.name, defaultValue: '"{{name}}" 이름의 레시피가 이미 존재합니다. 어떻게 저장할까요?' })}
-        actions={[
-          {
-            label: t('dashboard.overwrite', { defaultValue: '덮어쓰기' }),
-            variant: 'danger',
-            onClick: () => { saveRecipeData(duplicateModal.existingId); setDuplicateModal(m => ({ ...m, open: false })); },
-          },
-          {
-            label: t('advDashboard.saveAsCopy', { defaultValue: '사본으로 저장' }),
-            variant: 'primary',
-            onClick: () => { saveRecipeData(undefined, { asCopy: true }); setDuplicateModal(m => ({ ...m, open: false })); },
-          },
-          {
-            label: t('common.cancel', { defaultValue: '취소' }),
-            variant: 'ghost',
-            onClick: () => setDuplicateModal(m => ({ ...m, open: false })),
-          },
-        ]}
-      />
+
     </div>
   );
 };

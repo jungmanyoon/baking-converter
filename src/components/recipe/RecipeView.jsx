@@ -1,3 +1,4 @@
+import { useRecipeStore } from '@/stores/useRecipeStore'
 import React, { useState } from 'react'
 import ConfirmModal from '../common/ConfirmModal'
 import { toast } from '@/utils/toast'
@@ -102,6 +103,12 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
 
   // 변환된 레시피가 있는지 확인
   const hasConversion = recipe.conversionDetails || recipe.convertedFrom
+  const instructions = recipe.steps?.length
+    ? recipe.steps.map(step => ({ text: step.instruction || step.description || step.action || '', time: step.duration?.target || step.time, temp: step.temperature?.target || step.temp }))
+    : (recipe.instructions || []).map(text => ({ text }))
+  const phaseName = phase => t(`phase.${phase.type === 'main' ? 'mainDough' : phase.type}`, { defaultValue: phase.name || phase.type })
+  const total = (recipe.ingredients || []).reduce((sum, ing) => sum + Number(ing.amount || 0), 0)
+
 
   return (
     <div className="recipe-detail max-w-5xl mx-auto">
@@ -117,11 +124,11 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
 
       <div className="card mb-3">
         {/* H2: 카테고리 헤더밴드 (아이콘형) - .card 의 p-4 를 상쇄해 풀블리드. 인쇄 시 숨김 */}
-        <CategoryHeaderBand category={recipe.category} size="lg" className="-mx-4 -mt-4 mb-3 rounded-t-xl print-hide" />
-        <div className="flex justify-between items-center mb-2">
+        {!recipe.conversion && <CategoryHeaderBand category={recipe.category} size="lg" className="-mx-4 -mt-4 mb-3 rounded-t-xl print-hide" />}
+        <div className="flex justify-between items-center mb-2 print-hide">
           <div className="flex gap-2 flex-wrap">
-            <Button size="small" onClick={onConvert}>{t('components.recipeView.convert')}</Button>
-            <Button size="small" variant="secondary" onClick={onEdit}>{t('components.recipeView.edit')}</Button>
+            <Button size="small" onClick={onConvert}>{t(recipe.conversion ? 'savedRecipe.editConversion' : 'components.recipeView.convert')}</Button>
+            {!recipe.conversion && <Button size="small" variant="secondary" onClick={onEdit}>{t('components.recipeView.edit')}</Button>}
             <Button size="small" variant="secondary" onClick={() => window.print()}>{t('components.recipeView.print')}</Button>
             <Button variant="secondary" onClick={async () => {
               try {
@@ -144,12 +151,13 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
 
         <div className="flex justify-between items-start">
           <div>
+            <p className="text-xs font-semibold text-brand-700 mb-1">{t(recipe.conversion ? 'savedRecipe.converted' : 'savedRecipe.original')}</p>
             <h1 className="text-xl font-bold text-ink mb-1">{recipe.name}</h1>
             {recipe.description && (
               <p className="text-ink-muted">{recipe.description}</p>
             )}
           </div>
-          <div className="text-right">
+          {!recipe.conversion && <div className="text-right">
             <span className="inline-block px-3 py-1 bg-surface-muted text-ink-muted rounded-full text-sm">
               {t(getCategoryMeta(recipe.category).labelKey)}
             </span>
@@ -158,12 +166,41 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
                 {getMethodName(recipe.method)}
               </p>
             )}
-          </div>
+          </div>}
         </div>
       </div>
 
       {/* 변환된 레시피가 있으면 좌우로 표시, 없으면 기존 레이아웃 */}
-      {hasConversion ? (
+      {recipe.conversion ? (
+        <section className="saved-weighing-sheet" aria-label={t('savedRecipe.ready')}>
+          <header className="saved-sheet-heading">
+            <div><h2>{t('savedRecipe.ready')}</h2><p>{t('savedRecipe.resultHint')}</p></div>
+            <strong>{Number(total.toFixed(1))} g</strong>
+          </header>
+          <div className="saved-sheet-meta"><span>×{Number(recipe.conversion.multiplier.toFixed(3))}</span><span>{recipe.conversion.methodLabel}</span><span>{t('savedRecipe.source', { name: recipe.conversion.sourceRecipeName })}</span></div>
+          <div className="saved-phase-grid">
+            {(recipe.phases?.length ? recipe.phases : [{ id: 'main', type: 'main', ingredients: recipe.ingredients }]).map(phase => (
+              <section key={phase.id} className="saved-phase">
+                <h3>{phaseName(phase)}<span>{Number(phase.ingredients.reduce((sum, ing) => sum + Number(ing.amount), 0).toFixed(1))} g</span></h3>
+                <ul>{phase.ingredients.map((ing, index) => (
+                  <li key={ing.id || index}>
+                    <label><input type="checkbox" aria-label={t('savedRecipe.weighed', { name: ing.name })} /><span>{ing.name}</span><strong>{Number(Number(ing.amount).toFixed(1))}<small>{ing.unit || 'g'}</small></strong></label>
+                    {ing.note && <p className="text-xs text-ink-subtle ml-8">{ing.note}</p>}
+                  </li>
+                ))}</ul>
+              </section>
+            ))}
+          </div>
+          <details className="saved-source print-hide"><summary>{t('savedRecipe.inputSnapshot')}</summary>
+            {renderIngredientTable(recipe.conversion.workspace.ingredients)}
+            {useRecipeStore.getState().recipes.some(item => item.id === recipe.conversion.sourceRecipeId) && <Button variant="secondary" onClick={() => {
+              const original = useRecipeStore.getState().recipes.find(item => item.id === recipe.conversion.sourceRecipeId)
+              useRecipeStore.getState().setCurrentRecipe(original)
+              window.scrollTo({ top: 0 })
+            }}>{t('savedRecipe.sourceOpen')}</Button>}
+          </details>
+        </section>
+      ) : hasConversion ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* 원본 레시피 */}
           <div className="card border-2 border-line">
@@ -296,17 +333,17 @@ function RecipeView({ recipe, onEdit, onDelete, onConvert, onBack }) {
         </div>
       )}
 
-      {recipe.instructions && recipe.instructions.length > 0 && (
-        <div className="card mt-3">
-          <h2 className="text-base font-semibold mb-2">{t('components.recipeView.instructionsTitle')}</h2>
-          <ol className="space-y-2 text-sm">
-            {recipe.instructions.map((instruction, index) => (
-              <li key={index} className="flex">
-                <span className="font-medium text-ink-muted mr-3">{index + 1}.</span>
-                <span>{instruction}</span>
-              </li>
-            ))}
-          </ol>
+      {instructions.length > 0 && (
+        <section className="card mt-3 saved-instructions">
+          <h2 className="text-base font-semibold mb-2">{t('savedRecipe.process')}</h2>
+          <ol>{instructions.map((step, index) => (
+            <li key={index}><b>{index + 1}</b><div>{step.text}{(step.time || step.temp) && <p className="text-xs text-ink-subtle">{step.time ? `${step.time} ${t('savedRecipe.minute')}` : ''} {step.temp ? `${step.temp}°C` : ''}</p>}</div></li>
+          ))}</ol>
+        </section>
+      )}
+      {recipe.ovenSettings?.temperature > 0 && (
+        <div className="card mt-3 text-sm"><b>{t('savedRecipe.bake')}</b> · {recipe.ovenSettings.temperature}°C {recipe.ovenSettings.bottomTemperature ? `/ ${recipe.ovenSettings.bottomTemperature}°C` : ''} · {recipe.ovenSettings.duration || recipe.bakingTime || '—'} {t('savedRecipe.minute')}
+          {recipe.ovenSettings.secondBake?.time > 0 && <span> → {recipe.ovenSettings.secondBake.topTemp}°C / {recipe.ovenSettings.secondBake.bottomTemp}°C · {recipe.ovenSettings.secondBake.time} {t('savedRecipe.minute')}</span>}
         </div>
       )}
 
