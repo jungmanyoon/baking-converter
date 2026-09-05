@@ -2,11 +2,25 @@
 
 > 이 파일 하나에만 모든 작업 진행상황을 기록한다. 새 문서를 여러 개 만들지 않는다.
 > 세션이 바뀌어도 이 파일 맨 위 "다음 세션 재개 지점"부터 이어서 작업한다.
-> 최종 갱신: 2026-07-19
+> 최종 갱신: 2026-09-05
 
 ---
 
 ## [다음 세션 재개 지점] <- 여기부터 읽고 이어서
+
+**[2026-09-05 세션 종료] 변환본 저장·조리용 계량표·전문가 초기화 수정 및 운영 배포 완료. 이번 요청의 미완료 작업 없음. 아래 7월 기록은 과거 이력이며 완료 여부를 현재 코드와 대조할 것.**
+
+- 배포 주소: https://jungmanyoon.github.io/ (GitHub Pages, `gh-pages`). 최신 기능 커밋: `e7918be`; 배포 커밋: `29c617787f7c1f003c3b39a0e5ca92218016139e`. 운영 페이지·서비스워커가 검증한 빌드와 일치함을 확인했다.
+- 완료: 표 내부 스크롤 제거, 모바일 작업 화면 분리, 원본 보존 및 최종 계량 결과를 별도 변환본으로 저장. 저장 직후 계량표 표시, 단계별 소계·계량 체크·공정/시간/온도, JSON/텍스트 결과 내보내기, 새로고침 복원.
+- 변환본 재편집은 `conversion.workspace`의 입력·설정에서 시작해 배수가 중복 적용되지 않는다. 변환본만 갱신하거나 사본을 저장한다. 관련 커밋: `8634589`.
+- 전문가 전체 초기화: 배수 1, 추가 제법 변환 해제, PC 원본 표만 표시, 모바일 재료 입력 화면 복귀. 원본 자체의 폴리시·탕종 재료 단계는 보존한다. 되돌리기는 이전 설정을 복원하며 초기화만으로 저장된 원본·변환본은 변경하지 않는다. 1배라도 제법 변환이 있으면 결과 표를 표시한다.
+- 최종 검증: 단위 테스트 177개, Chrome·모바일 Safari 기본/반응형 E2E 34개, TypeScript 검사와 PWA 빌드 통과. 운영 사이트에서 저장·재편집·오프라인 재열기·초기화·되돌리기 및 원본 보존 확인.
+- 재검증: `npm.cmd run test:run`, `npm.cmd run build`, `npx.cmd playwright test tests/e2e/responsive-workflow.spec.ts tests/e2e/basic-functionality.spec.ts --project=chromium --project="Mobile Safari" --workers=2 --reporter=line`. 배포본 검증은 `$env:REVIEW_URL='https://jungmanyoon.github.io'; node scripts/verify-saved-conversion.mjs`. 상세: `CODE_REVIEW_2026-09-05.md`.
+- 기존 로컬 변경 `.claude/settings.local.json`, 미추적 `DEPLOYMENT_GUIDE.md`, `diag-dash.py`, `diag-mobile.py`는 이번 작업과 무관해 보존하고 커밋에서 제외했다. `.review-shots/`의 캡처·진단 자료는 Git 제외 상태다.
+- 선택적 후속: 실물 휴대폰 키보드/PWA/백그라운드 타이머 검증, 다른 메뉴 이동 시 미저장 초안 복원, AdvancedDashboard 분리. Browserslist 오래된 데이터와 DDT 중복 import 경고는 빌드 실패를 일으키지 않는 기존 항목이다.
+- 이전 세션의 Windows 샌드박스 복구 완료는 확인하지 못했다. 이번 세션은 샌드박스 비활성화 환경에서 정상 작업했으며 재설치를 반복하지 않았다.
+
+---
 
 **[2026-07-19 세션 G] taste 스킬 UI/UX 개선 실제 적용 완료(+간단/전문가 2모드 동반). 다음: (대형)AdvancedDashboard 분해·좌우표 공용 IngredientTable 추출 / PHASE_META 단계색·카테고리밴드색 뉴트럴화 / 설정 모달 접근성 통합 / 부가패널(영양·비용·추천) raw색 스윕.**
 
