@@ -74,6 +74,8 @@ input, select, textarea { min-width: 0; }
 }
 
 @media (max-width: 1023px) {
+  .workspace-tools { min-width: 0; width: 100%; }
+  .workspace-actions { min-width: 0; flex: 1; }
   .workspace-heading { padding: 16px; }
   .workspace-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: sticky; top: var(--app-header-height); z-index: 30; padding: 8px 12px; gap: 4px; background: #fff; border-bottom: 1px solid #e2e8f0; }
   .workspace-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border-radius: 8px; color: #64748b; font-size: 13px; font-weight: 600; }

@@ -821,6 +821,7 @@ const AdvancedDashboard: React.FC = () => {
         if (typeof mcData.multiplier === 'number') {
           // 배수는 최소 0.01 이상 보장
           setMultiplier(Math.max(0.01, Math.abs(mcData.multiplier) || 1));
+          setMultiplierInput(String(Math.max(0.01, Math.abs(mcData.multiplier) || 1)));
         }
         if (typeof mcData.isPanLinked === 'boolean') setIsPanLinked(mcData.isPanLinked);
       }
@@ -1045,9 +1046,6 @@ const AdvancedDashboard: React.FC = () => {
 
   // 실제 사용할 배수: 연동 시 자동계산, 비연동 시 수동입력
   const effectiveMultiplier = isPanLinked ? autoMultiplier : multiplier;
-
-  // 변환 여부: 배수가 1이면(부동소수 안전) 원본=변환이 동일하므로 변환표를 숨기고 원본표를 전체폭으로
-  const isConverted = Math.abs(effectiveMultiplier - 1) >= 0.0001;
 
   // 재료가 사실상 비어있는지(새 레시피) — 안내 배너/예시 버튼 노출 판단
   const isEmptyRecipe = useMemo(
@@ -1326,6 +1324,10 @@ const AdvancedDashboard: React.FC = () => {
   // 원본 제법과 선택 제법이 같은지 확인
   const isSameMethod = originalMethodType === method.type ||
     (originalMethodType === 'straight' && method.type === 'straight');
+
+  // 배수가 같아도 제법이 달라지면 별도의 계량 결과를 보여준다.
+  const isConverted = Math.abs(effectiveMultiplier - 1) >= 0.0001 ||
+    (usePreferment && !isSameMethod);
 
   // 변환 재료를 단계별로 그룹화 (사전반죽 + 본반죽을 하나의 테이블에 표시)
   const convertedIngredientsByPhase = useMemo(() => {
@@ -1641,12 +1643,29 @@ const AdvancedDashboard: React.FC = () => {
     const prevConvertedProduct = convertedProduct;
     const prevOven = oven;
     const prevMultiplier = multiplier;
+    const prevMultiplierInput = multiplierInput;
+    const prevMethod = method;
+    const prevUsePreferment = usePreferment;
+    const prevMobileSection = mobileSection;
 
     // 개별 reset은 토스트를 띄우지 않도록 호출 (전체용 단일 토스트로 통합)
     resetPanSettings(false);
     resetSpecificVolume(false);
     resetOvenSettings(false);
     setMultiplier(1);
+    setMultiplierInput('1');
+    // 팬 비용적의 후속 재계산과 무관하게 원본의 1배 중량으로 고정한다.
+    setIsPanLinked(false);
+    setMethod({
+      type: (originalMethodType === 'preferment' ? 'sponge' : originalMethodType) as MethodSettings['type'],
+      flourRatio: 0,
+      waterRatio: 0,
+      yeastAdjustment: 1,
+      prefermentYeastRatio: 0,
+    });
+    // 원본에 이미 있는 폴리시·탕종 등의 재료 단계는 그대로 사용한다.
+    setUsePreferment(false);
+    setMobileSection('ingredients');
 
     showUndoToast(() => {
       setPans(prevPans);
@@ -1654,8 +1673,12 @@ const AdvancedDashboard: React.FC = () => {
       setConvertedProduct(prevConvertedProduct);
       setOven(prevOven);
       setMultiplier(prevMultiplier);
+      setMultiplierInput(prevMultiplierInput);
+      setMethod(prevMethod);
+      setUsePreferment(prevUsePreferment);
+      setMobileSection(prevMobileSection);
     });
-  }, [resetPanSettings, resetSpecificVolume, resetOvenSettings, pans, isPanLinked, convertedProduct, oven, multiplier, showUndoToast]);
+  }, [resetPanSettings, resetSpecificVolume, resetOvenSettings, pans, isPanLinked, convertedProduct, oven, multiplier, multiplierInput, method, usePreferment, mobileSection, originalMethodType, showUndoToast]);
 
   // 레시피 저장 (실제 저장 로직)
   // options.asCopy: '사본으로 저장' - currentRecipe 폴백을 끊어 강제로 신규 생성(원본 보존)

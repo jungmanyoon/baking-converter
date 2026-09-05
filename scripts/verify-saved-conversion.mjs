@@ -64,9 +64,21 @@ try {
   await page.screenshot({ path: '.review-shots/verified-conversion-mobile.png', fullPage: true })
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.screenshot({ path: '.review-shots/verified-conversion-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: '변환 설정 수정', exact: true }).click()
+  await page.getByRole('button', { name: '전문가', exact: true }).click()
+  await page.locator('.workspace-actions summary').click()
+  await page.getByTitle('변환 설정 전체 초기화 (원본 레시피는 유지)', { exact: true }).click()
+  await expect(page.locator('.workspace-result')).toHaveCount(0)
+  await expect(page.getByRole('spinbutton', { name: '강력분 g', exact: true })).toHaveValue('500')
+  await expect(page.locator('.workspace-controls input[type="text"]')).toHaveValue('1')
+  await page.screenshot({ path: '.review-shots/verified-reset-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: '되돌리기', exact: true }).click()
+  await expect(page.locator('.workspace-result')).toContainText('폴리시')
+  await expect(page.locator('.workspace-controls input[type="text"]')).toHaveValue('2')
+  expect(await readRecipes()).toEqual(updated)
   expect(errors).toEqual([])
   console.log(JSON.stringify({ baseURL, original: 'preserved', poolishAmounts: [300, 300, 700, 300],
-    editAgain: 'no double scaling', offlineReload: 'passed', pageErrors: errors }, null, 2))
+    editAgain: 'no double scaling', offlineReload: 'passed', resetAndUndo: 'passed', pageErrors: errors }, null, 2))
 } finally {
   await browser.close()
 }

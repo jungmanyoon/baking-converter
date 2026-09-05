@@ -33,6 +33,86 @@ async function noOverflow(page: Page) {
 
 test.beforeEach(async ({ page }) => seed(page))
 
+test('전문가 초기화는 제법과 배수를 해제하고 되돌리기는 변환 설정을 복원한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openConverter(page)
+  await page.getByRole('button', { name: '전문가', exact: true }).click()
+  await page.locator('.workspace-settings').getByRole('button', { name: '제법', exact: true }).click()
+  await page.locator('.workspace-settings').getByRole('button', { name: '폴리시', exact: true }).click()
+  // 제법만 바꾼 1배 결과도 숨기지 않는다.
+  await expect(page.locator('.workspace-result')).toBeVisible()
+  await expect(page.locator('.workspace-result')).toContainText('폴리시')
+  await page.getByRole('button', { name: '자동', exact: true }).click()
+  await page.getByRole('button', { name: '×2', exact: true }).click()
+  await page.locator('.workspace-tools').getByRole('button', { name: '변환본 저장', exact: true }).first().click()
+  await expect(page.locator('.saved-weighing-sheet')).toBeVisible()
+  const savedBeforeReset = await page.evaluate(() => JSON.parse(localStorage.getItem('recipe-store')!).state.recipes)
+  await page.getByRole('button', { name: '변환 설정 수정', exact: true }).click()
+  await page.locator('.workspace-actions summary').click()
+  await page.getByTitle('변환 설정 전체 초기화 (원본 레시피는 유지)', { exact: true }).click()
+  await expect(page.locator('.workspace-result')).toHaveCount(0)
+  await expect(page.getByRole('spinbutton', { name: '강력분 g', exact: true })).toHaveValue('500')
+  await expect(page.locator('.workspace-controls input[type="text"]')).toHaveValue('1')
+  await page.getByRole('button', { name: '되돌리기', exact: true }).click()
+  await expect(page.locator('.workspace-result')).toBeVisible()
+  await expect(page.locator('.workspace-result')).toContainText('폴리시')
+  await expect(page.locator('.workspace-result')).toContainText('700')
+  await expect(page.locator('.workspace-controls input[type="text"]')).toHaveValue('2')
+  // 모바일에서도 초기화 직후 원본 입력 화면으로 돌아간다.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.locator('.workspace-tabs').getByRole('button', { name: '변환 설정' }).click()
+  await page.getByTitle('변환 설정 전체 초기화 (원본 레시피는 유지)', { exact: true }).click()
+  await expect(page.locator('.workspace-original')).toBeVisible()
+  await expect(page.locator('.workspace-result')).toBeHidden()
+  await page.locator('.workspace-tabs').getByRole('button', { name: '계량 결과' }).click()
+  const amounts = await page.locator('.workspace-result tbody tr').evaluateAll(rows => rows
+    .filter(row => row.querySelectorAll('td').length > 1)
+    .map(row => Number(row.querySelector('td:last-child')!.textContent!.trim())))
+  expect(amounts).toEqual([500, 300])
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('recipe-store')!).state.recipes)).toEqual(savedBeforeReset)
+  await noOverflow(page)
+})
+
+test('초기화해도 원본 폴리시의 단계별 재료와 중량은 보존된다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/#recipes', { waitUntil: 'domcontentloaded' })
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('recipe-store')!)
+    const source = data.state.recipes[0]
+    source.method = 'poolish'
+    source.phases = [
+      { id: 'poolish', type: 'poolish', ingredients: [
+        { id: 'pf', name: '강력분', amount: 150, unit: 'g', category: 'flour' },
+        { id: 'pw', name: '물', amount: 150, unit: 'g', category: 'liquid' },
+      ] },
+      { id: 'main', type: 'main', ingredients: [
+        { id: 'mf', name: '강력분', amount: 350, unit: 'g', category: 'flour' },
+        { id: 'mw', name: '물', amount: 150, unit: 'g', category: 'liquid' },
+      ] },
+    ]
+    source.ingredients = source.phases.flatMap((phase: any) => phase.ingredients)
+    localStorage.setItem('recipe-store', JSON.stringify(data))
+  })
+  await page.reload()
+  await openConverter(page)
+  await page.getByRole('button', { name: '전문가', exact: true }).click()
+  await page.getByRole('button', { name: '자동', exact: true }).click()
+  await page.getByRole('button', { name: '×2', exact: true }).click()
+  await page.locator('.workspace-settings').getByRole('button', { name: '제법', exact: true }).click()
+  await page.locator('.workspace-settings').getByRole('button', { name: '비가', exact: true }).click()
+  await page.locator('.workspace-actions summary').click()
+  await page.getByTitle('변환 설정 전체 초기화 (원본 레시피는 유지)', { exact: true }).click()
+  await expect(page.locator('.workspace-result')).toHaveCount(0)
+  await expect(page.getByRole('spinbutton', { name: '강력분 g', exact: true }).first()).toHaveValue('150')
+  await expect(page.getByRole('spinbutton', { name: '강력분 g', exact: true }).last()).toHaveValue('350')
+  await page.locator('.workspace-tools').getByRole('button', { name: '변환본 저장', exact: true }).first().click()
+  await expect(page.locator('.saved-weighing-sheet')).toBeVisible()
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('recipe-store')!).state.recipes)
+  expect(saved[1].ingredients.map((ing: any) => ing.amount)).toEqual([150, 150, 350, 150])
+  expect(saved[1].phases.map((phase: any) => phase.type)).toEqual(['poolish', 'main'])
+  expect(saved[1].conversion.multiplier).toBe(1)
+})
+
 test('2배 폴리시를 저장하고 재편집해도 원본과 계량표가 보존된다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openConverter(page)
