@@ -87,12 +87,12 @@
         "inLanguage": ["ko", "en"]
     }
     </script>
-  <script type="module" crossorigin src="/assets/js/index-hOhzoFWe.js"></script>
+  <script type="module" crossorigin src="/assets/js/index-P16KQYly.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-ClheY0Qu.js">
   <link rel="modulepreload" crossorigin href="/assets/js/vendor-CoKanYz2.js">
-  <link rel="modulepreload" crossorigin href="/assets/js/state-i18n-Bt8XeFzT.js">
+  <link rel="modulepreload" crossorigin href="/assets/js/state-i18n-DHGWZsws.js">
   <link rel="modulepreload" crossorigin href="/assets/js/icons-aFG3fnPY.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BurZsdq0.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-Cborcdga.css">
 <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 <body>
     <!-- SEO: 정적 콘텐츠 - #root 외부에 배치하여 React가 삭제하지 못하게 함 -->
@@ -364,29 +364,5 @@
     </noscript>
 
 
-    <!-- React 마운트 후 정적 콘텐츠 숨김 (크롤러용으로 DOM에는 유지) -->
-    <script>
-        // React가 마운트되면 정적 콘텐츠를 시각적으로만 숨김 (DOM에는 유지하여 크롤러가 볼 수 있음)
-        window.addEventListener('DOMContentLoaded', function() {
-            var checkReact = setInterval(function() {
-                var root = document.getElementById('root');
-                var seoContent = document.getElementById('seo-content');
-                if (root && root.children.length > 0) {
-                    // React가 마운트됨 - 정적 콘텐츠 숨기기 (크롤러용으로 DOM 유지)
-                    if (seoContent) {
-                        seoContent.style.position = 'absolute';
-                        seoContent.style.left = '-9999px';
-                        seoContent.style.width = '1px';
-                        seoContent.style.height = '1px';
-                        seoContent.style.overflow = 'hidden';
-                        seoContent.setAttribute('aria-hidden', 'true');
-                    }
-                    clearInterval(checkReact);
-                }
-            }, 100);
-            // 10초 후 체크 중단
-            setTimeout(function() { clearInterval(checkReact); }, 10000);
-        });
-    </script>
 </body>
 </html>
