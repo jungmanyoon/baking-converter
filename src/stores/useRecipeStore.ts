@@ -144,23 +144,25 @@ export const useRecipeStore = create<RecipeStore>()(
         },
 
         importRecipes: async (recipes: Recipe[]) => {
-          return new Promise((resolve) => {
-            set((state) => {
-              // 신뢰할 수 없는 입력을 정규화하고 객체가 아닌 항목은 스킵
-              const incoming = Array.isArray(recipes) ? recipes : []
-              const sanitized = incoming
-                .filter((r) => r && typeof r === 'object')
-                .map((r) => sanitizeRecipe(r))
-              // 중복 체크 (sanitizeRecipe가 id를 보장하므로 undefined-id로 인한 무력화 없음)
-              const existingIds = new Set(state.recipes.map(r => r.id))
-              const newRecipes = sanitized.filter(r => !existingIds.has(r.id))
-
-              return {
-                recipes: [...state.recipes, ...newRecipes]
-              }
+          let added = 0
+          let skipped = 0
+          set((state) => {
+            const incoming = Array.isArray(recipes) ? recipes : []
+            const sanitized = incoming
+              .filter((r) => r && typeof r === 'object' && !Array.isArray(r))
+              .map((r) => sanitizeRecipe(r))
+            const existingIds = new Set(state.recipes.map(r => r.id))
+            const newRecipes = sanitized.filter(r => {
+              if (existingIds.has(r.id)) return false
+              existingIds.add(r.id)
+              return true
             })
-            resolve()
+            added = newRecipes.length
+            skipped = incoming.length - added
+            return { recipes: [...state.recipes, ...newRecipes] }
           })
+          if (useRecipeStorageStatus.getState().failed) throw new Error('Recipe storage failed')
+          return { added, skipped }
         },
 
         exportRecipes: async (ids?: string[]) => {

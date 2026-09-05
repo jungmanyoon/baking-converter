@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/stores/useSettingsStore'
-import { useRecipeStore } from '@/stores/useRecipeStore'
+import { useFolderSaveStatus } from '@/hooks/useAutoSave'
+import { useRecipeStore, useRecipeStorageStatus } from '@/stores/useRecipeStore'
 import {
   fileSystemStorage,
   isFileSystemAccessSupported
@@ -15,7 +16,6 @@ import { toast } from '@/utils/toast'
 import {
   FolderOpen,
   HardDrive,
-  Cloud,
   Check,
   AlertTriangle,
   RefreshCw,
@@ -102,9 +102,11 @@ export default function StorageSettingsTab() {
       // 설정 저장
       await fileSystemStorage.writeFile('SETTINGS', getSettingsData())
       updateLastSaved()
+      useFolderSaveStatus.setState({ failed: false })
       toast.success(t('settings.storage.savedSuccess'))
     } catch (error: any) {
       toast.error(error.message || t('settings.storage.saveFailed'))
+      useFolderSaveStatus.setState({ failed: true })
     }
   }, [isInitialized, recipes, getSettingsData, updateLastSaved, t])
 
@@ -117,12 +119,14 @@ export default function StorageSettingsTab() {
 
     try {
       let loadedCount = 0
+      let skippedCount = 0
 
       // 레시피 불러오기
       const recipesData = await fileSystemStorage.readFile<any[]>('RECIPES')
       if (recipesData && Array.isArray(recipesData)) {
-        await importRecipes(recipesData)
-        loadedCount += recipesData.length
+        const result = await importRecipes(recipesData)
+        loadedCount += result.added
+        skippedCount += result.skipped
       }
 
       // 설정 불러오기
@@ -137,8 +141,8 @@ export default function StorageSettingsTab() {
         }
       }
 
-      if (loadedCount > 0 || settingsImported) {
-        toast.success(t('settings.storage.loadedSuccess', { count: loadedCount }))
+      if (loadedCount > 0 || skippedCount > 0 || settingsImported) {
+        toast.success(t('settings.storage.importSummary', { count: loadedCount, skipped: skippedCount }))
       } else {
         toast.info(t('settings.storage.noSavedFiles'))
       }
@@ -178,16 +182,10 @@ export default function StorageSettingsTab() {
         throw new Error(t('settings.storage.invalidFileFormat'))
       }
 
-      const recipesWithDates = data.map((recipe: any) => ({
-        ...recipe,
-        createdAt: recipe.createdAt ? new Date(recipe.createdAt) : new Date(),
-        updatedAt: recipe.updatedAt ? new Date(recipe.updatedAt) : new Date()
-      }))
-
-      await importRecipes(recipesWithDates)
-      toast.success(t('settings.storage.importedSuccess', { count: data.length }))
+      const result = await importRecipes(data)
+      toast.success(t('settings.storage.importSummary', { count: result.added, skipped: result.skipped }))
     } catch (error) {
-      toast.error(t('settings.storage.invalidFileFormatError'))
+      toast.error(t(useRecipeStorageStatus.getState().failed ? 'workspace.saveFailed' : 'settings.storage.invalidFileFormatError'))
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
@@ -199,7 +197,8 @@ export default function StorageSettingsTab() {
   const handleResetToSamples = useCallback(() => {
     if (window.confirm(t('settings.storage.resetSamplesConfirm'))) {
       resetToSampleRecipes()
-      toast.success(t('settings.storage.samplesLoaded'))
+      if (useRecipeStorageStatus.getState().failed) toast.error(t('workspace.saveFailed'))
+      else toast.success(t('settings.storage.samplesLoaded'))
     }
   }, [resetToSampleRecipes, t])
 
@@ -209,6 +208,11 @@ export default function StorageSettingsTab() {
 
   return (
     <div className="space-y-6">
+      <section className="bg-surface-muted border border-line rounded-lg p-4 text-sm" aria-label={t('settings.storage.deviceTitle')}>
+        <h3 className="font-semibold text-ink mb-2">{t('settings.storage.deviceTitle')}</h3>
+        <p>{t('settings.storage.deviceDescription')}</p>
+        <p className="mt-2 text-ink-subtle">{t('settings.storage.deviceTransfer')}</p>
+      </section>
       {/* 저장소 타입 선택 */}
       <section className="bg-surface-paper rounded-lg border border-line p-4">
         <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
@@ -256,7 +260,7 @@ export default function StorageSettingsTab() {
             ) : (
               <>
                 <div className="p-2 bg-blue-100 rounded-full">
-                  <Cloud className="w-5 h-5 text-blue-600" />
+                  <HardDrive className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-ink">
@@ -322,7 +326,7 @@ export default function StorageSettingsTab() {
           )}
 
           {/* 자동 저장 옵션 */}
-          <label className="flex items-center gap-3 p-3 bg-surface-muted rounded-lg cursor-pointer">
+          {isSupported && storage.type === 'filesystem' && <label className="flex items-center gap-3 p-3 bg-surface-muted rounded-lg cursor-pointer">
             <input
               type="checkbox"
               checked={storage.autoSave}
@@ -335,7 +339,7 @@ export default function StorageSettingsTab() {
                 {t('settings.storage.autoSaveDesc')}
               </p>
             </div>
-          </label>
+          </label>}
         </div>
       </section>
 

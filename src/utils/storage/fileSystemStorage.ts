@@ -140,7 +140,8 @@ export class FileSystemStorage {
     try {
       const storedHandle = await getStoredDirectoryHandle()
       if (storedHandle) {
-        const hasPermission = await verifyPermission(storedHandle)
+        // 자동 복원에서는 권한 창을 띄우지 않는다. 재연결은 사용자 클릭으로 처리한다.
+        const hasPermission = await storedHandle.queryPermission({ mode: 'readwrite' }) === 'granted'
         if (hasPermission) {
           this.directoryHandle = storedHandle
           this.initialized = true
@@ -257,7 +258,7 @@ export class FileSystemStorage {
         return null
       }
       console.error(`파일 읽기 실패 (${fileName}):`, error)
-      return null
+      throw new Error(`데이터 불러오기 실패: ${fileName}`)
     }
   }
 

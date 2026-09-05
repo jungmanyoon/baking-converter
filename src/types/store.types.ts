@@ -89,7 +89,7 @@ export interface RecipeStore {
   setCurrentRecipe: (recipe: Recipe | null) => void;
   saveDraft: (draft: Partial<Recipe>) => void;
   clearDraft: () => void;
-  importRecipes: (recipes: Recipe[]) => Promise<void>;
+  importRecipes: (recipes: Recipe[]) => Promise<{ added: number; skipped: number }>;
   exportRecipes: (ids?: string[]) => Promise<Blob>;
 
   // 필터 & 정렬 액션

@@ -3,7 +3,7 @@
  * sanitizeRecipe 방어(불량 레시피 정규화)가 실제로 동작함을 고정한다.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useRecipeStore, selectFilteredRecipes } from '@stores/useRecipeStore'
 
 // jsdom Blob에는 .text()가 없어 FileReader로 읽는다
@@ -94,6 +94,22 @@ describe('useRecipeStore.importRecipes - 정규화', () => {
     const recipes = useRecipeStore.getState().recipes
     expect(recipes).toHaveLength(1)
     expect(recipes[0].name).toBe('A')
+  })
+
+  it('파일 안의 중복 ID도 건너뛰고 실제 추가/생략 개수를 반환한다', async () => {
+    const result = await useRecipeStore.getState().importRecipes([
+      { id: 'same', name: 'A' }, { id: 'same', name: 'B' }, null, [],
+    ] as any)
+    expect(result).toEqual({ added: 1, skipped: 3 })
+    expect(useRecipeStore.getState().recipes).toHaveLength(1)
+  })
+
+  it('저장 한도 초과 시 가져오기가 성공으로 끝나지 않는다', async () => {
+    const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota') })
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await expect(useRecipeStore.getState().importRecipes([{ id: 'new', name: 'New' } as any])).rejects.toThrow('Recipe storage failed')
+    } finally { write.mockRestore(); warning.mockRestore() }
   })
 
   it('빈 배열/비배열 입력에도 안전하다', async () => {

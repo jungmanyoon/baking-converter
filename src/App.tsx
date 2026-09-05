@@ -11,7 +11,7 @@ import PWAStatus from '@components/pwa/PWAStatus.jsx'
 import PWAInstallPrompt from '@components/pwa/PWAInstallPrompt.jsx'
 import { ToastContainer } from '@components/common/ToastContainer'
 import { useRecipeStore, useRecipeStorageStatus } from '@stores/useRecipeStore'
-import { useAutoSave } from '@/hooks/useAutoSave'
+import { useAutoSave, useFolderSaveStatus } from '@/hooks/useAutoSave'
 
 // 로딩 스피너 컴포넌트 (SEO를 위한 텍스트 콘텐츠 포함)
 function LoadingSpinner() {
@@ -101,6 +101,7 @@ function App() {
     const { activeTab, setActiveTab } = useAppStore()
     const { currentRecipe, addRecipe, updateRecipe, setCurrentRecipe, deleteRecipe } = useRecipeStore()
     const storageFailed = useRecipeStorageStatus(state => state.failed)
+    const folderSaveFailed = useFolderSaveStatus(state => state.failed)
 
     // 앱이 그려지는 즉시 초기 안내를 치워 두 화면이 겹치거나 스크롤이 튀지 않게 한다.
     useLayoutEffect(() => {
@@ -238,6 +239,7 @@ function App() {
             <PWAInstallPrompt />
             <ToastContainer />
             {storageFailed && <div role="alert" className="border-b border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-700">{t('workspace.saveFailed')}</div>}
+            {folderSaveFailed && <div role="alert" className="border-b border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-700">{t('settings.storage.folderSaveFailed')}</div>}
 
             {/* 모바일 하단 메뉴와 기기 안전 영역만큼 본문 여백을 확보한다. */}
             <main id="main-content" tabIndex={-1} className={`app-main flex-grow ${isFullWidth ? "" : "container mx-auto px-4 py-6"}`}>
